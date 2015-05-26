@@ -13,3 +13,6 @@ Description: ViennaCL provides free, portable C++ source
   ViennaCL library and yet you do not need to distribute a copy 
   of this code with your package.
 License: GPL-3
+URL: http://github.com/cdeterman/RViennaCL
+BugReports: http://github.com/cdeterman/RViennaCL/issues/new
+Suggests: gpuR
