@@ -1,0 +1,15 @@
+Package: RViennaCL
+Type: Package
+Title: ViennaCL C++ Header Files
+Version: 1.6.2-0
+Date: 2015-05-26
+Author: Charles Determan Jr.
+Maintainer: Charles Determan Jr <cdetermanjr@gmail.com>
+Description: ViennaCL provides free, portable C++ source
+  libraries with a large part implemented as template headers.
+  As done with the BH package, I have placed these libraries in
+  this package as a more efficient distribution system for CRAN.
+  The idea is that you can write a package that depends on the
+  ViennaCL library and yet you do not need to distribute a copy 
+  of this code with your package.
+License: GPL-3

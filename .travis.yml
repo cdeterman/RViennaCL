@@ -1,0 +1,16 @@
+language: r
+
+sudo: required
+
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+
+env:
+ global:
+   - CRAN: http://cran.rstudio.com
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
