@@ -1,4 +1,4 @@
-## bh: ViennaCL Headers for R  
+## RViennaCL: ViennaCL Headers for R  
 [![Build Status](https://travis-ci.org/cdeterman/RViennaCL.svg)](https://travis-ci.org/cdeterman/RViennaCL)
 
 This package provides [R](http://www.r-project.org) with access to
