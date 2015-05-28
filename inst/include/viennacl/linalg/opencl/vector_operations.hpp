@@ -33,6 +33,7 @@
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/linalg/opencl/common.hpp"
 #include "viennacl/linalg/opencl/kernels/vector.hpp"
+#include "viennacl/linalg/opencl/kernels/scan.hpp"
 #include "viennacl/meta/predicate.hpp"
 #include "viennacl/meta/enable_if.hpp"
 #include "viennacl/scheduler/preset.hpp"
@@ -474,6 +475,82 @@ void plane_rotation(vector_base<NumericT> & x,
   device_specific::statements_container statement = scheduler::preset::plane_rotation(&x, &y, &alpha, &beta);
   kernels::vector<NumericT>::execution_handler(viennacl::traits::opencl_context(x)).execute("plane_rotation", statement);
 }
+
+//////////////////////////
+
+
+namespace detail
+{
+  /** @brief Worker routine for scan routines using OpenCL
+   *
+   * Note on performance: For non-in-place scans one could optimize away the temporary 'opencl_carries'-array.
+   * This, however, only provides small savings in the latency-dominated regime, yet would effectively double the amount of code to maintain.
+   */
+  template<typename NumericT>
+  void scan_impl(vector_base<NumericT> const & input,
+                 vector_base<NumericT>       & output,
+                 bool is_inclusive)
+  {
+    vcl_size_t local_worksize = 128;
+    vcl_size_t workgroups = 128;
+
+    viennacl::backend::mem_handle opencl_carries;
+    viennacl::backend::memory_create(opencl_carries, sizeof(NumericT)*workgroups, viennacl::traits::context(input));
+
+    viennacl::ocl::context & ctx = const_cast<viennacl::ocl::context &>(viennacl::traits::opencl_handle(input).context());
+    viennacl::linalg::opencl::kernels::scan<NumericT>::init(ctx);
+    viennacl::ocl::kernel& k1 = ctx.get_kernel(viennacl::linalg::opencl::kernels::scan<NumericT>::program_name(), "scan_1");
+    viennacl::ocl::kernel& k2 = ctx.get_kernel(viennacl::linalg::opencl::kernels::scan<NumericT>::program_name(), "scan_2");
+    viennacl::ocl::kernel& k3 = ctx.get_kernel(viennacl::linalg::opencl::kernels::scan<NumericT>::program_name(), "scan_3");
+
+    // First step: Scan within each thread group and write carries
+    k1.local_work_size(0, local_worksize);
+    k1.global_work_size(0, workgroups * local_worksize);
+    viennacl::ocl::enqueue(k1( input, cl_uint( input.start()), cl_uint( input.stride()), cl_uint(input.size()),
+                              output, cl_uint(output.start()), cl_uint(output.stride()),
+                              cl_uint(is_inclusive ? 0 : 1), opencl_carries.opencl_handle())
+                          );
+
+    // Second step: Compute offset for each thread group (exclusive scan for each thread group)
+    k2.local_work_size(0, workgroups);
+    k2.global_work_size(0, workgroups);
+    viennacl::ocl::enqueue(k2(opencl_carries.opencl_handle()));
+
+    // Third step: Offset each thread group accordingly
+    k3.local_work_size(0, local_worksize);
+    k3.global_work_size(0, workgroups * local_worksize);
+    viennacl::ocl::enqueue(k3(output, cl_uint(output.start()), cl_uint(output.stride()), cl_uint(output.size()),
+                              opencl_carries.opencl_handle())
+                          );
+  }
+}
+
+
+/** @brief This function implements an inclusive scan using CUDA.
+*
+* @param input       Input vector.
+* @param output      The output vector. Either idential to input or non-overlapping.
+*/
+template<typename NumericT>
+void inclusive_scan(vector_base<NumericT> const & input,
+                    vector_base<NumericT>       & output)
+{
+  detail::scan_impl(input, output, true);
+}
+
+
+/** @brief This function implements an exclusive scan using CUDA.
+*
+* @param input       Input vector
+* @param output      The output vector. Either idential to input or non-overlapping.
+*/
+template<typename NumericT>
+void exclusive_scan(vector_base<NumericT> const & input,
+                    vector_base<NumericT>       & output)
+{
+  detail::scan_impl(input, output, false);
+}
+
 
 } //namespace opencl
 } //namespace linalg

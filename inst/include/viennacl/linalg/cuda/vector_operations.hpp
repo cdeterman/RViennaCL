@@ -32,6 +32,8 @@
 #include "viennacl/traits/start.hpp"
 #include "viennacl/traits/stride.hpp"
 
+#include "viennacl/linalg/cuda/common.hpp"
+
 namespace viennacl
 {
 namespace linalg
@@ -791,7 +793,7 @@ void vector_assign(vector_base<NumericT> & vec1, ScalarT1 const & alpha, bool up
                                      static_cast<unsigned int>(vec1.internal_size()),  //Note: Do NOT use traits::internal_size() here, because vector proxies don't require padding.
 
                                      detail::cuda_arg<value_type>(detail::arg_reference(alpha, temporary_alpha)) );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("avbv_v_kernel");
+  VIENNACL_CUDA_LAST_ERROR_CHECK("vector_assign_kernel");
 }
 
 //////////////////////////
@@ -3038,6 +3040,194 @@ void plane_rotation(vector_base<NumericT> & vec1,
                                       detail::cuda_arg<value_type>(detail::arg_reference(beta, temporary_beta)) );
   VIENNACL_CUDA_LAST_ERROR_CHECK("plane_rotation_kernel");
 }
+
+////////////////////////
+
+
+template<typename NumericT>
+__global__ void scan_kernel_1(NumericT const *X,
+                              unsigned int startX,
+                              unsigned int incX,
+                              unsigned int sizeX,
+
+                              NumericT *Y,
+                              unsigned int startY,
+                              unsigned int incY,
+
+                              unsigned int scan_offset,
+                              NumericT *carries) // 0 for inclusive scan, 1 for exclusive
+{
+  __shared__ NumericT shared_buffer[256];
+  NumericT my_value;
+
+  unsigned int work_per_thread = (sizeX - 1) / (gridDim.x * blockDim.x) + 1;
+  unsigned int block_start = work_per_thread * blockDim.x *  blockIdx.x;
+  unsigned int block_stop  = work_per_thread * blockDim.x * (blockIdx.x + 1);
+  unsigned int block_offset = 0;
+
+  // run scan on each section
+  for (unsigned int i = block_start + threadIdx.x; i < block_stop; i += blockDim.x)
+  {
+    // load data:
+    my_value = (i < sizeX) ? X[i * incX + startX] : 0;
+
+    // inclusive scan in shared buffer:
+    for(unsigned int stride = 1; stride < blockDim.x; stride *= 2)
+    {
+      __syncthreads();
+      shared_buffer[threadIdx.x] = my_value;
+      __syncthreads();
+      if (threadIdx.x >= stride)
+        my_value += shared_buffer[threadIdx.x - stride];
+    }
+    __syncthreads();
+    shared_buffer[threadIdx.x] = my_value;
+    __syncthreads();
+
+    // exclusive scan requires us to write a zero value at the beginning of each block
+    if (scan_offset > 0)
+      my_value = (threadIdx.x > 0) ? shared_buffer[threadIdx.x - 1] : 0;
+
+    // write to output array
+    if (i < sizeX)
+      Y[i * incY + startY] = block_offset + my_value;
+
+    block_offset += shared_buffer[blockDim.x-1];
+  }
+
+  // write carry:
+  if (threadIdx.x == 0)
+    carries[blockIdx.x] = block_offset;
+
+}
+
+// exclusive-scan of carries
+template<typename NumericT>
+__global__ void scan_kernel_2(NumericT *carries)
+{
+  __shared__ NumericT shared_buffer[256];
+
+  // load data:
+  NumericT my_carry = carries[threadIdx.x];
+
+  // exclusive scan in shared buffer:
+
+  for(unsigned int stride = 1; stride < blockDim.x; stride *= 2)
+  {
+    __syncthreads();
+    shared_buffer[threadIdx.x] = my_carry;
+    __syncthreads();
+    if (threadIdx.x >= stride)
+      my_carry += shared_buffer[threadIdx.x - stride];
+  }
+  __syncthreads();
+  shared_buffer[threadIdx.x] = my_carry;
+  __syncthreads();
+
+  // write to output array
+  carries[threadIdx.x] = (threadIdx.x > 0) ? shared_buffer[threadIdx.x - 1] : 0;
+}
+
+template<typename NumericT>
+__global__ void scan_kernel_3(NumericT *Y,
+                              unsigned int startY,
+                              unsigned int incY,
+                              unsigned int sizeY,
+
+                              NumericT const *carries)
+{
+  unsigned int work_per_thread = (sizeY - 1) / (gridDim.x * blockDim.x) + 1;
+  unsigned int block_start = work_per_thread * blockDim.x *  blockIdx.x;
+  unsigned int block_stop  = work_per_thread * blockDim.x * (blockIdx.x + 1);
+
+  __shared__ NumericT shared_offset;
+
+  if (threadIdx.x == 0)
+    shared_offset = carries[blockIdx.x];
+
+  __syncthreads();
+
+  // add offset to each element in the block:
+  for (unsigned int i = block_start + threadIdx.x; i < block_stop; i += blockDim.x)
+    if (i < sizeY)
+      Y[i * incY + startY] += shared_offset;
+}
+
+
+
+namespace detail
+{
+  /** @brief Worker routine for scan routines
+   *
+   * Note on performance: For non-in-place scans one could optimize away the temporary 'cuda_carries'-array.
+   * This, however, only provides small savings in the latency-dominated regime, yet would effectively double the amount of code to maintain.
+   */
+  template<typename NumericT>
+  void scan_impl(vector_base<NumericT> const & input,
+                 vector_base<NumericT>       & output,
+                 bool is_inclusive)
+  {
+    vcl_size_t block_num = 128;
+    vcl_size_t threads_per_block = 128;
+
+    viennacl::backend::mem_handle cuda_carries;
+    viennacl::backend::memory_create(cuda_carries, sizeof(NumericT)*block_num, viennacl::traits::context(input));
+
+    // First step: Scan within each thread group and write carries
+    scan_kernel_1<<<block_num, threads_per_block>>>(detail::cuda_arg<NumericT>(input),
+                                                    static_cast<unsigned int>(viennacl::traits::start(input)),
+                                                    static_cast<unsigned int>(viennacl::traits::stride(input)),
+                                                    static_cast<unsigned int>(viennacl::traits::size(input)),
+
+                                                    detail::cuda_arg<NumericT>(output),
+                                                    static_cast<unsigned int>(viennacl::traits::start(output)),
+                                                    static_cast<unsigned int>(viennacl::traits::stride(output)),
+
+                                                    static_cast<unsigned int>(is_inclusive ? 0 : 1),
+                                                    detail::cuda_arg<NumericT>(cuda_carries.cuda_handle())
+                                                   );
+
+    // Second step: Compute offset for each thread group (exclusive scan for each thread group)
+    scan_kernel_2<<<1, block_num>>>(detail::cuda_arg<NumericT>(cuda_carries.cuda_handle()));
+
+    // Third step: Offset each thread group accordingly
+    scan_kernel_3<<<block_num, threads_per_block>>>(detail::cuda_arg<NumericT>(output),
+                                                    static_cast<unsigned int>(viennacl::traits::start(output)),
+                                                    static_cast<unsigned int>(viennacl::traits::stride(output)),
+                                                    static_cast<unsigned int>(viennacl::traits::size(output)),
+
+                                                    detail::cuda_arg<NumericT>(cuda_carries.cuda_handle())
+                                                   );
+  }
+}
+
+
+/** @brief This function implements an inclusive scan using CUDA.
+*
+* @param input       Input vector.
+* @param output      The output vector. Either idential to input or non-overlapping.
+*/
+template<typename NumericT>
+void inclusive_scan(vector_base<NumericT> const & input,
+                    vector_base<NumericT>       & output)
+{
+  detail::scan_impl(input, output, true);
+}
+
+
+/** @brief This function implements an exclusive scan using CUDA.
+*
+* @param input       Input vector
+* @param output      The output vector. Either idential to input or non-overlapping.
+*/
+template<typename NumericT>
+void exclusive_scan(vector_base<NumericT> const & input,
+                    vector_base<NumericT>       & output)
+{
+  detail::scan_impl(input, output, false);
+}
+
+
 
 } //namespace cuda
 } //namespace linalg

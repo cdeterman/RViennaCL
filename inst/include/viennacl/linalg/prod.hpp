@@ -53,6 +53,17 @@ namespace viennacl
     }
     #endif
 
+    #ifdef VIENNACL_WITH_ARMADILLO
+    // ----------------------------------------------------
+    // Armadillo
+    //
+    template<typename NumericT, typename VectorT>
+    VectorT prod(arma::SpMat<NumericT> const& A, VectorT const& vector)
+    {
+      return A * vector;
+    }
+    #endif
+
     #ifdef VIENNACL_WITH_EIGEN
     // ----------------------------------------------------
     // Eigen
@@ -313,6 +324,19 @@ namespace viennacl
       return vector_expression<const StructuredMatrixType,
                                const vector_base<SCALARTYPE>,
                                op_prod >(mat, vec);
+    }
+
+    /** @brief Sparse matrix-matrix product with compressed_matrix objects */
+    template<typename NumericT>
+    viennacl::matrix_expression<const compressed_matrix<NumericT>,
+                                const compressed_matrix<NumericT>,
+                                op_prod >
+    prod(compressed_matrix<NumericT> const & A,
+         compressed_matrix<NumericT> const & B)
+    {
+      return viennacl::matrix_expression<const compressed_matrix<NumericT>,
+                                         const compressed_matrix<NumericT>,
+                                         op_prod >(A, B);
     }
 
   } // end namespace linalg
