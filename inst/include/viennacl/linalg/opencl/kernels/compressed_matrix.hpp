@@ -893,6 +893,51 @@ void generate_compressed_matrix_unit_lu_forward(StringT & source, std::string co
 }
 
 template<typename StringT>
+void generate_compressed_matrix_vec_mul_nvidia(StringT & source, std::string const & numeric_string, unsigned int subwarp_size)
+{
+  std::stringstream ss;
+  ss << subwarp_size;
+
+  source.append("__kernel void vec_mul_nvidia( \n");
+  source.append("    __global const unsigned int * row_indices, \n");
+  source.append("    __global const unsigned int * column_indices, \n");
+  source.append("  __global const unsigned int * row_blocks, \n");
+  source.append("    __global const "); source.append(numeric_string); source.append(" * elements, \n");
+  source.append("  unsigned int num_blocks, \n");
+  source.append("    __global const "); source.append(numeric_string); source.append(" * x, \n");
+  source.append("    uint4 layout_x, \n");
+  source.append("    __global "); source.append(numeric_string); source.append(" * result, \n");
+  source.append("    uint4 layout_result) \n");
+  source.append("{ \n");
+  source.append("  __local "); source.append(numeric_string); source.append(" shared_elements[256]; \n");
+
+  source.append("  const unsigned int id_in_row = get_local_id(0) % " + ss.str() + "; \n");
+  source.append("  const unsigned int block_increment = get_local_size(0) * ((layout_result.z - 1) / (get_global_size(0)) + 1); \n");
+  source.append("  const unsigned int block_start = get_group_id(0) * block_increment; \n");
+  source.append("  const unsigned int block_stop  = min(block_start + block_increment, layout_result.z); \n");
+
+  source.append("  for (unsigned int row  = block_start + get_local_id(0) / " + ss.str() + "; \n");
+  source.append("                    row  < block_stop; \n");
+  source.append("                    row += get_local_size(0) / " + ss.str() + ") \n");
+  source.append("  { \n");
+  source.append("    "); source.append(numeric_string); source.append(" dot_prod = 0; \n");
+  source.append("    unsigned int row_end = row_indices[row+1]; \n");
+  source.append("    for (unsigned int i = row_indices[row] + id_in_row; i < row_end; i += " + ss.str() + ") \n");
+  source.append("      dot_prod += elements[i] * x[column_indices[i] * layout_x.y + layout_x.x]; \n");
+
+  source.append("    shared_elements[get_local_id(0)] = dot_prod; \n");
+  source.append("    #pragma unroll \n");
+  source.append("    for (unsigned int k = 1; k < " + ss.str() + "; k *= 2) \n");
+  source.append("      shared_elements[get_local_id(0)] += shared_elements[get_local_id(0) ^ k]; \n");
+
+  source.append("    if (id_in_row == 0) \n");
+  source.append("      result[row * layout_result.y + layout_result.x] = shared_elements[get_local_id(0)]; \n");
+  source.append("  } \n");
+  source.append("} \n");
+
+}
+
+template<typename StringT>
 void generate_compressed_matrix_vec_mul(StringT & source, std::string const & numeric_string)
 {
   source.append("__kernel void vec_mul( \n");
@@ -1340,19 +1385,20 @@ void generate_compressed_matrix_compressed_matrix_prod_3(StringT & source, std::
   source.append("  unsigned int row_C_stop  = min( (uint) ((get_group_id(0) + 1) * work_per_group), (uint) A_size1); \n");
   source.append("  __local unsigned int shared_front[32]; \n");
   source.append("  __local "); source.append(numeric_string); source.append(" shared_front_values[32]; \n");
+  source.append("  unsigned int local_id = get_local_id(0); \n");
 
   source.append("  for (unsigned int row_C = row_C_start; row_C < row_C_stop; ++row_C) \n");
   source.append("  { \n");
   source.append("    unsigned int row_A_start = A_row_indices[row_C]; \n");
   source.append("    unsigned int row_A_end   = A_row_indices[row_C+1]; \n");
 
-  source.append("    unsigned int my_row_B = row_A_start + ((row_A_end - row_A_start > 1) ? get_local_id(0) : 0); \n"); // single row is a special case
+  source.append("    unsigned int my_row_B = row_A_start + ((row_A_end - row_A_start > 1) ? local_id : 0); \n"); // single row is a special case
   source.append("    unsigned int row_B_index = (my_row_B < row_A_end) ? A_col_indices[my_row_B]        : 0; \n");
   source.append("    unsigned int row_B_start = (my_row_B < row_A_end) ? B_row_indices[row_B_index]     : 0; \n");
   source.append("    unsigned int row_B_end   = (my_row_B < row_A_end) ? B_row_indices[row_B_index + 1] : 0; \n");
 
   source.append("    "); source.append(numeric_string); source.append(" val_A = (my_row_B < row_A_end) ? A_elements[my_row_B] : 0; \n");
-  source.append("    unsigned int index_in_C = C_row_indices[row_C]; \n");
+  source.append("    unsigned int index_in_C = C_row_indices[row_C] + local_id; \n");
 
   source.append("    if (row_A_end - row_A_start > 1) { \n"); // zero or no row can be processed faster
 
@@ -1367,33 +1413,33 @@ void generate_compressed_matrix_compressed_matrix_prod_3(StringT & source, std::
 
   // determine minimum index via reduction:
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        shared_front[get_local_id(0)] = current_front_index; \n");
+  source.append("        shared_front[local_id] = current_front_index; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 16) shared_front[get_local_id(0)] = min(shared_front[get_local_id(0)], shared_front[get_local_id(0) + 16]); \n");
+  source.append("        if (local_id < 16) shared_front[local_id] = min(shared_front[local_id], shared_front[local_id + 16]); \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 8)  shared_front[get_local_id(0)] = min(shared_front[get_local_id(0)], shared_front[get_local_id(0) + 8]); \n");
+  source.append("        if (local_id < 8)  shared_front[local_id] = min(shared_front[local_id], shared_front[local_id + 8]); \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 4)  shared_front[get_local_id(0)] = min(shared_front[get_local_id(0)], shared_front[get_local_id(0) + 4]); \n");
+  source.append("        if (local_id < 4)  shared_front[local_id] = min(shared_front[local_id], shared_front[local_id + 4]); \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 2)  shared_front[get_local_id(0)] = min(shared_front[get_local_id(0)], shared_front[get_local_id(0) + 2]); \n");
+  source.append("        if (local_id < 2)  shared_front[local_id] = min(shared_front[local_id], shared_front[local_id + 2]); \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 1)  shared_front[get_local_id(0)] = min(shared_front[get_local_id(0)], shared_front[get_local_id(0) + 1]); \n");
+  source.append("        if (local_id < 1)  shared_front[local_id] = min(shared_front[local_id], shared_front[local_id + 1]); \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
 
   source.append("        if (shared_front[0] == B_size2) break; \n");
 
   // compute output value via reduction:
-  source.append("        shared_front_values[get_local_id(0)] = (current_front_index == shared_front[0]) ? val_A * current_front_value : 0; \n");
+  source.append("        shared_front_values[local_id] = (current_front_index == shared_front[0]) ? val_A * current_front_value : 0; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 16) shared_front_values[get_local_id(0)] += shared_front_values[get_local_id(0) + 16]; \n");
+  source.append("        if (local_id < 16) shared_front_values[local_id] += shared_front_values[local_id + 16]; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 8)  shared_front_values[get_local_id(0)] += shared_front_values[get_local_id(0) + 8]; \n");
+  source.append("        if (local_id < 8)  shared_front_values[local_id] += shared_front_values[local_id + 8]; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 4)  shared_front_values[get_local_id(0)] += shared_front_values[get_local_id(0) + 4]; \n");
+  source.append("        if (local_id < 4)  shared_front_values[local_id] += shared_front_values[local_id + 4]; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 2)  shared_front_values[get_local_id(0)] += shared_front_values[get_local_id(0) + 2]; \n");
+  source.append("        if (local_id < 2)  shared_front_values[local_id] += shared_front_values[local_id + 2]; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
-  source.append("        if (get_local_id(0) < 1)  shared_front_values[get_local_id(0)] += shared_front_values[get_local_id(0) + 1]; \n");
+  source.append("        if (local_id < 1)  shared_front_values[local_id] += shared_front_values[local_id + 1]; \n");
   source.append("        barrier(CLK_LOCAL_MEM_FENCE); \n");
 
   // update front:
@@ -1404,31 +1450,33 @@ void generate_compressed_matrix_compressed_matrix_prod_3(StringT & source, std::
   source.append("        } \n");
 
   // write current front to register buffer:
-  source.append("        index_buffer = (get_local_id(0) == buffer_size) ? shared_front[0]        : index_buffer;  \n");
-  source.append("        value_buffer = (get_local_id(0) == buffer_size) ? shared_front_values[0] : value_buffer;  \n");
+  source.append("        index_buffer = (local_id == buffer_size) ? shared_front[0]        : index_buffer;  \n");
+  source.append("        value_buffer = (local_id == buffer_size) ? shared_front_values[0] : value_buffer;  \n");
   source.append("        ++buffer_size;  \n");
 
   // flush register buffer via a coalesced write once full:
   source.append("        if (buffer_size == get_local_size(0)) {  \n");
-  source.append("          C_col_indices[index_in_C + get_local_id(0)] = index_buffer; \n");
-  source.append("          C_elements[index_in_C + get_local_id(0)]    = value_buffer; \n");
-  source.append("          buffer_size = 0; \n");
-  source.append("          index_in_C += get_local_size(0); \n");
+  source.append("          C_col_indices[index_in_C] = index_buffer; \n");
+  source.append("          C_elements[index_in_C]    = value_buffer; \n");
   source.append("        } \n");
+
+  // the following should be in the previous if-conditional, but a bug in NVIDIA drivers 34x.yz requires this slight rewrite
+  source.append("          index_in_C += (buffer_size == get_local_size(0)) ? get_local_size(0) : 0; \n");
+  source.append("          buffer_size = (buffer_size == get_local_size(0)) ?                0  : buffer_size; \n");
 
   source.append("      }  \n");
 
   // write remaining entries in register buffer:
-  source.append("      if (get_local_id(0) < buffer_size) {  \n");
-  source.append("        C_col_indices[index_in_C + get_local_id(0)] = index_buffer; \n");
-  source.append("        C_elements[index_in_C + get_local_id(0)]    = value_buffer; \n");
+  source.append("      if (local_id < buffer_size) {  \n");
+  source.append("        C_col_indices[index_in_C] = index_buffer; \n");
+  source.append("        C_elements[index_in_C]    = value_buffer; \n");
   source.append("      } \n");
 
   // copy to C in coalesced manner:
   source.append("    } else { \n");
-  source.append("      for (unsigned int i = row_B_start + get_local_id(0); i < row_B_end; i += get_local_size(0)) { \n");
-  source.append("        C_col_indices[index_in_C + get_local_id(0)] = B_col_indices[i]; \n");
-  source.append("        C_elements[index_in_C + get_local_id(0)]    = val_A * B_elements[i]; \n");
+  source.append("      for (unsigned int i = row_B_start + local_id; i < row_B_end; i += get_local_size(0)) { \n");
+  source.append("        C_col_indices[index_in_C] = B_col_indices[i]; \n");
+  source.append("        C_elements[index_in_C]    = val_A * B_elements[i]; \n");
   source.append("        index_in_C += get_local_size(0); \n");
   source.append("      } \n");
   source.append("    } \n");
@@ -1493,6 +1541,8 @@ struct compressed_matrix
       }
       generate_compressed_matrix_dense_matrix_multiplication(source, numeric_string);
       generate_compressed_matrix_row_info_extractor(source, numeric_string);
+      if (ctx.current_device().vendor_id() == viennacl::ocl::nvidia_id)
+        generate_compressed_matrix_vec_mul_nvidia(source, numeric_string, 16);
       generate_compressed_matrix_vec_mul(source, numeric_string);
       generate_compressed_matrix_vec_mul4(source, numeric_string);
       generate_compressed_matrix_vec_mul8(source, numeric_string);

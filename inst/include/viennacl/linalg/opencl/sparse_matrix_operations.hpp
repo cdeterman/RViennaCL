@@ -84,13 +84,20 @@ void prod_impl(const viennacl::compressed_matrix<NumericT, AlignmentV> & A,
 {
   viennacl::ocl::context & ctx = const_cast<viennacl::ocl::context &>(viennacl::traits::opencl_handle(A).context());
   viennacl::linalg::opencl::kernels::compressed_matrix<NumericT>::init(ctx);
+  bool use_nvidia_specific = AlignmentV == 1 && ctx.current_device().vendor_id() == viennacl::ocl::nvidia_id && (double(A.nnz()) / double(A.size1()) > 12.0);
+
   std::stringstream ss;
   ss << "vec_mul";
   unsigned int alignment = AlignmentV; //prevent unreachable code warnings below
-  if (alignment == 4)
-    ss << "4";
-  if (alignment == 8)
-    ss << "8";
+  if (use_nvidia_specific)
+    ss << "_nvidia";
+  else
+  {
+    if (alignment == 4)
+      ss << "4";
+    if (alignment == 8)
+      ss << "8";
+  }
 
   viennacl::ocl::kernel & k = ctx.get_kernel(viennacl::linalg::opencl::kernels::compressed_matrix<NumericT>::program_name(), ss.str());
 
@@ -117,12 +124,25 @@ void prod_impl(const viennacl::compressed_matrix<NumericT, AlignmentV> & A,
   {
     if (ctx.current_device().max_work_group_size() >= 256)
       k.local_work_size(0, 256);
-    k.global_work_size(0, A.blocks1() * k.local_work_size(0));
 
-    viennacl::ocl::enqueue(k(A.handle1().opencl_handle(), A.handle2().opencl_handle(), A.handle3().opencl_handle(), A.handle().opencl_handle(), cl_uint(A.blocks1()),
-                             x, layout_x,
-                             y, layout_y
-                            ));
+    if (use_nvidia_specific)
+    {
+      k.global_work_size(0, 512 * k.local_work_size(0));
+
+      viennacl::ocl::enqueue(k(A.handle1().opencl_handle(), A.handle2().opencl_handle(), A.handle3().opencl_handle(), A.handle().opencl_handle(), cl_uint(A.blocks1()),
+                               x, layout_x,
+                               y, layout_y
+                              ));
+    }
+    else // use CSR adaptive:
+    {
+      k.global_work_size(0, A.blocks1() * k.local_work_size(0));
+
+      viennacl::ocl::enqueue(k(A.handle1().opencl_handle(), A.handle2().opencl_handle(), A.handle3().opencl_handle(), A.handle().opencl_handle(), cl_uint(A.blocks1()),
+                               x, layout_x,
+                               y, layout_y
+                              ));
+    }
   }
 }
 
@@ -246,17 +266,8 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
                           )             );
 
     // exclusive scan of helper array to find new size:
-    // TODO: Run exclusive scan on device
-    exclusive_scan_helper.switch_memory_context(viennacl::context(MAIN_MEMORY));
-    unsigned int *exclusive_scan_helper_ptr = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(exclusive_scan_helper.handle());
-    unsigned int augmented_size = 0;
-    for (std::size_t i=0; i<exclusive_scan_helper.size(); ++i)
-    {
-      unsigned int tmp = exclusive_scan_helper_ptr[i];
-      exclusive_scan_helper_ptr[i] = augmented_size;
-      augmented_size += tmp;
-    }
-    exclusive_scan_helper.switch_memory_context(viennacl::traits::context(A));
+    viennacl::linalg::exclusive_scan(exclusive_scan_helper);
+    unsigned int augmented_size = exclusive_scan_helper[A.size1()];
 
     // split A = A2 * G1
     viennacl::compressed_matrix<NumericT, AlignmentV> A2(A.size1(), augmented_size, augmented_size, viennacl::traits::context(A));
