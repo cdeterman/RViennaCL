@@ -1,11 +1,11 @@
 #ifndef VIENNACL_LINALG_CUDA_BISECT_KERNEL_CALLS_HPP_
 #define VIENNACL_LINALG_CUDA_BISECT_KERNEL_CALLS_HPP_
+
 /* =========================================================================
    Copyright (c) 2010-2014, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
-
                             -----------------
                   ViennaCL - The Vienna Computing Library
                             -----------------
@@ -25,6 +25,8 @@
     the creation of derivative works is allowed by including the following statement:
     "This software contains source code provided by NVIDIA Corporation."
 */
+
+#include "viennacl/linalg/detail/bisect/structs.hpp"
 
 // includes, kernels
 #include "viennacl/linalg/cuda/bisect_kernel_small.hpp"
@@ -51,13 +53,13 @@ void bisectSmall(const viennacl::linalg::detail::InputData<NumericT> &input, vie
   dim3  threads(VIENNACL_BISECT_MAX_THREADS_BLOCK_SMALL_MATRIX, 1, 1);
 
   bisectKernelSmall<<< blocks, threads >>>(
-    viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_a),
-    viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_b) + 1,
+    viennacl::cuda_arg(input.g_a),
+    viennacl::cuda_arg(input.g_b) + 1,
     mat_size,
-    viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.vcl_g_left),
-    viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.vcl_g_right),
-    viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.vcl_g_left_count),
-    viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.vcl_g_right_count),
+    viennacl::cuda_arg(result.vcl_g_left),
+    viennacl::cuda_arg(result.vcl_g_right),
+    viennacl::cuda_arg(result.vcl_g_left_count),
+    viennacl::cuda_arg(result.vcl_g_right_count),
     lg, ug, 0, mat_size,
     precision
     );
@@ -73,23 +75,23 @@ void bisectLarge(const viennacl::linalg::detail::InputData<NumericT> &input, vie
  {
 
   dim3  blocks(1, 1, 1);
-  dim3  threads(VIENNACL_BISECT_MAX_THREADS_BLOCK, 1, 1);
+  dim3  threads(mat_size > 512 ? VIENNACL_BISECT_MAX_THREADS_BLOCK : VIENNACL_BISECT_MAX_THREADS_BLOCK / 2 , 1, 1);
   bisectKernelLarge<<< blocks, threads >>>
-    (viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_a),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_b) + 1,
+    (viennacl::cuda_arg(input.g_a),
+     viennacl::cuda_arg(input.g_b) + 1,
      mat_size,
-     lg, ug, 0, mat_size, precision,
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_num_one),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_num_blocks_mult),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_left_one),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_right_one),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_pos_one),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_left_mult),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_right_mult),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_left_count_mult),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_right_count_mult),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_blocks_mult),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_blocks_mult_sum)
+     lg, ug, static_cast<unsigned int>(0), mat_size, precision,
+     viennacl::cuda_arg(result.g_num_one),
+     viennacl::cuda_arg(result.g_num_blocks_mult),
+     viennacl::cuda_arg(result.g_left_one),
+     viennacl::cuda_arg(result.g_right_one),
+     viennacl::cuda_arg(result.g_pos_one),
+     viennacl::cuda_arg(result.g_left_mult),
+     viennacl::cuda_arg(result.g_right_mult),
+     viennacl::cuda_arg(result.g_left_count_mult),
+     viennacl::cuda_arg(result.g_right_count_mult),
+     viennacl::cuda_arg(result.g_blocks_mult),
+     viennacl::cuda_arg(result.g_blocks_mult_sum)
      );
   viennacl::linalg::cuda::VIENNACL_CUDA_LAST_ERROR_CHECK("Kernel launch failed.");
 }
@@ -104,20 +106,21 @@ void bisectLarge_OneIntervals(const viennacl::linalg::detail::InputData<NumericT
  {
 
   unsigned int num_one_intervals = result.g_num_one;
-  unsigned int num_blocks = viennacl::linalg::detail::getNumBlocksLinear(num_one_intervals, VIENNACL_BISECT_MAX_THREADS_BLOCK);
+  unsigned int num_blocks = viennacl::linalg::detail::getNumBlocksLinear(num_one_intervals,
+                                                                         mat_size > 512 ? VIENNACL_BISECT_MAX_THREADS_BLOCK : VIENNACL_BISECT_MAX_THREADS_BLOCK / 2);
   dim3 grid_onei;
   grid_onei.x = num_blocks;
   grid_onei.y = 1, grid_onei.z = 1;
-  dim3 threads_onei(VIENNACL_BISECT_MAX_THREADS_BLOCK, 1, 1);
+  dim3 threads_onei(mat_size > 512 ? VIENNACL_BISECT_MAX_THREADS_BLOCK : VIENNACL_BISECT_MAX_THREADS_BLOCK / 2, 1, 1);
 
 
   bisectKernelLarge_OneIntervals<<< grid_onei , threads_onei >>>
-    (viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_a),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_b) + 1,
+    (viennacl::cuda_arg(input.g_a),
+     viennacl::cuda_arg(input.g_b) + 1,
      mat_size, num_one_intervals,
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_left_one),
-     viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_right_one),
-     viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_pos_one),
+     viennacl::cuda_arg(result.g_left_one),
+     viennacl::cuda_arg(result.g_right_one),
+     viennacl::cuda_arg(result.g_pos_one),
      precision
      );
   viennacl::linalg::cuda::VIENNACL_CUDA_LAST_ERROR_CHECK("bisectKernelLarge_OneIntervals() FAILED.");
@@ -138,20 +141,20 @@ void bisectLarge_MultIntervals(const viennacl::linalg::detail::InputData<Numeric
 
     // setup the execution environment
     dim3  grid_mult(num_blocks_mult, 1, 1);
-    dim3  threads_mult(VIENNACL_BISECT_MAX_THREADS_BLOCK, 1, 1);
+    dim3  threads_mult(mat_size > 512 ? VIENNACL_BISECT_MAX_THREADS_BLOCK : VIENNACL_BISECT_MAX_THREADS_BLOCK / 2, 1, 1);
 
     bisectKernelLarge_MultIntervals<<< grid_mult, threads_mult >>>
-      (viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_a),
-       viennacl::linalg::cuda::detail::cuda_arg<NumericT>(input.g_b) + 1,
+      (viennacl::cuda_arg(input.g_a),
+       viennacl::cuda_arg(input.g_b) + 1,
        mat_size,
-       viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_blocks_mult),
-       viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_blocks_mult_sum),
-       viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_left_mult),
-       viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_right_mult),
-       viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_left_count_mult),
-       viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_right_count_mult),
-       viennacl::linalg::cuda::detail::cuda_arg<NumericT>(result.g_lambda_mult),
-       viennacl::linalg::cuda::detail::cuda_arg<unsigned int>(result.g_pos_mult),
+       viennacl::cuda_arg(result.g_blocks_mult),
+       viennacl::cuda_arg(result.g_blocks_mult_sum),
+       viennacl::cuda_arg(result.g_left_mult),
+       viennacl::cuda_arg(result.g_right_mult),
+       viennacl::cuda_arg(result.g_left_count_mult),
+       viennacl::cuda_arg(result.g_right_count_mult),
+       viennacl::cuda_arg(result.g_lambda_mult),
+       viennacl::cuda_arg(result.g_pos_mult),
        precision
       );
     viennacl::linalg::cuda::VIENNACL_CUDA_LAST_ERROR_CHECK("bisectKernelLarge_MultIntervals() FAILED.");

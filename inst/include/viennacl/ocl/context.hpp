@@ -137,8 +137,8 @@ public:
         break;
       }
     }
-    if (found == false)
-      std::cerr << "ViennaCL: Warning: Could not set device " << d.name() << " for context." << std::endl;
+//    if (found == false)
+//      std::cerr << "ViennaCL: Warning: Could not set device " << d.name() << " for context." << std::endl;
   }
 
   /** @brief Add a device to the context. Must be done before the context is initialized */
@@ -290,9 +290,9 @@ public:
       return (it->second)[current_queue_id_];
     }
 
-    std::cerr << "ViennaCL: FATAL ERROR: Could not obtain current command queue!" << std::endl;
-    std::cout << "Number of queues in context: " << queues_.size() << std::endl;
-    std::cout << "Number of devices in context: " << devices_.size() << std::endl;
+//    std::cerr << "ViennaCL: FATAL ERROR: Could not obtain current command queue!" << std::endl;
+//    std::cout << "Number of queues in context: " << queues_.size() << std::endl;
+//    std::cout << "Number of devices in context: " << devices_.size() << std::endl;
     throw "queue not found!";
 
     //return ((*it)->second)[current_queue_id_];
@@ -360,8 +360,8 @@ public:
         }
       }
     }
-    if (found == false)
-      std::cerr << "ViennaCL: Warning: Could not set queue " << q.handle().get() << " for context." << std::endl;
+//    if (found == false)
+//      std::cerr << "ViennaCL: Warning: Could not set queue " << q.handle().get() << " for context." << std::endl;
   }
 
   /////////////////// create program ///////////////////////////////
@@ -436,7 +436,7 @@ public:
     {
       cl_build_status status;
       clGetProgramBuildInfo(temp, devices_[0].id(), CL_PROGRAM_BUILD_STATUS, sizeof(cl_build_status), &status, NULL);
-      std::cout << "Build Status = " << status << " ( Err = " << err << " )" << std::endl;
+//      std::cout << "Build Status = " << status << " ( Err = " << err << " )" << std::endl;
 
       char *build_log;
       size_t ret_val_size; // don't use vcl_size_t here
@@ -444,10 +444,10 @@ public:
       build_log = new char[ret_val_size+1];
       err = clGetProgramBuildInfo(temp, devices_[0].id(), CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
       build_log[ret_val_size] = '\0';
-      std::cout << "Log: " << build_log << std::endl;
+//      std::cout << "Log: " << build_log << std::endl;
       delete[] build_log;
 
-      std::cout << "Sources: " << source << std::endl;
+//      std::cout << "Sources: " << source << std::endl;
     }
     VIENNACL_ERR_CHECK(err);
 
@@ -545,7 +545,7 @@ public:
       if ((*it)->name() == name)
         return **it;
     }
-    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
+//    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
     throw "In class 'context': name invalid in get_program()";
     //return programs_[0];  //return a defined object
   }
@@ -564,7 +564,7 @@ public:
       if ((*it)->name() == name)
         return **it;
     }
-    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
+//    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
     throw "In class 'context': name invalid in get_program()";
     //return programs_[0];  //return a defined object
   }
@@ -667,20 +667,20 @@ private:
       for (vcl_size_t i=0; i<device_num; ++i)
         devices_.push_back(devices[i]);
 
-      if (devices.size() == 0)
-      {
-        std::cerr << "ViennaCL: FATAL ERROR: No devices of type '";
-        switch (device_type_)
-        {
-        case CL_DEVICE_TYPE_CPU:          std::cout << "CPU"; break;
-        case CL_DEVICE_TYPE_GPU:          std::cout << "GPU"; break;
-        case CL_DEVICE_TYPE_ACCELERATOR:  std::cout << "ACCELERATOR"; break;
-        case CL_DEVICE_TYPE_DEFAULT:      std::cout << "DEFAULT"; break;
-        default:
-          std::cout << "UNKNOWN" << std::endl;
-        }
-        std::cout << "' found!" << std::endl;
-      }
+//      if (devices.size() == 0)
+//      {
+//        std::cerr << "ViennaCL: FATAL ERROR: No devices of type '";
+//        switch (device_type_)
+//        {
+//        case CL_DEVICE_TYPE_CPU:          std::cout << "CPU"; break;
+//        case CL_DEVICE_TYPE_GPU:          std::cout << "GPU"; break;
+//        case CL_DEVICE_TYPE_ACCELERATOR:  std::cout << "ACCELERATOR"; break;
+//        case CL_DEVICE_TYPE_DEFAULT:      std::cout << "DEFAULT"; break;
+//        default:
+//          std::cout << "UNKNOWN" << std::endl;
+//        }
+//        std::cout << "' found!" << std::endl;
+//      }
     }
 
     //extract list of device ids:
@@ -782,8 +782,8 @@ inline viennacl::ocl::kernel & viennacl::ocl::program::get_kernel(std::string co
     if ((*it)->name() == name)
       return **it;
   }
-  std::cerr << "ViennaCL: FATAL ERROR: Could not find kernel '" << name << "' from program '" << name_ << "'" << std::endl;
-  std::cout << "Number of kernels in program: " << kernels_.size() << std::endl;
+//  std::cerr << "ViennaCL: FATAL ERROR: Could not find kernel '" << name << "' from program '" << name_ << "'" << std::endl;
+//  std::cout << "Number of kernels in program: " << kernels_.size() << std::endl;
   throw "Kernel not found";
   //return kernels_[0];  //return a defined object
 }

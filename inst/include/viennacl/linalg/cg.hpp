@@ -53,10 +53,16 @@ public:
   * @param tol              Relative tolerance for the residual (solver quits if ||r|| < tol * ||r_initial||)
   * @param max_iterations   The maximum number of iterations
   */
-  cg_tag(double tol = 1e-8, unsigned int max_iterations = 300) : tol_(tol), iterations_(max_iterations) {}
+  cg_tag(double tol = 1e-8, unsigned int max_iterations = 300) : tol_(tol), abs_tol_(0), iterations_(max_iterations) {}
 
   /** @brief Returns the relative tolerance */
   double tolerance() const { return tol_; }
+
+  /** @brief Returns the absolute tolerance */
+  double abs_tolerance() const { return abs_tol_; }
+  /** @brief Sets the absolute tolerance */
+  void abs_tolerance(double new_tol) { if (new_tol >= 0) abs_tol_ = new_tol; }
+
   /** @brief Returns the maximum number of iterations */
   unsigned int max_iterations() const { return iterations_; }
 
@@ -72,6 +78,7 @@ public:
 
 private:
   double tol_;
+  double abs_tol_;
   unsigned int iterations_;
 
   //return values from solver
@@ -137,7 +144,7 @@ namespace detail
 
     NumericT norm_rhs_squared = viennacl::linalg::norm_2(residual); norm_rhs_squared *= norm_rhs_squared;
 
-    if (!norm_rhs_squared) //check for early convergence of A*x = 0
+    if (norm_rhs_squared <= tag.abs_tolerance() * tag.abs_tolerance()) //check for early convergence of A*x = 0
       return result;
 
     NumericT inner_prod_rr = norm_rhs_squared;
@@ -160,7 +167,7 @@ namespace detail
       inner_prod_ApAp = std::accumulate(host_inner_prod_buffer.begin() +     buffer_offset_per_vector, host_inner_prod_buffer.begin() + 2 * buffer_offset_per_vector, NumericT(0));
       inner_prod_pAp  = std::accumulate(host_inner_prod_buffer.begin() + 2 * buffer_offset_per_vector, host_inner_prod_buffer.begin() + 3 * buffer_offset_per_vector, NumericT(0));
 
-      if (std::fabs(inner_prod_rr / norm_rhs_squared) < tag.tolerance() *  tag.tolerance())    //squared norms involved here
+      if (std::fabs(inner_prod_rr / norm_rhs_squared) < tag.tolerance() *  tag.tolerance() || std::fabs(inner_prod_rr) < tag.abs_tolerance() * tag.abs_tolerance())    //squared norms involved here
         break;
 
       alpha = inner_prod_rr / inner_prod_pAp;
@@ -428,7 +435,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, cg_tag const & tag, P
   CPU_NumericType norm_rhs_squared = ip_rr;
   CPU_NumericType new_ipp_rr_over_norm_rhs;
 
-  if (norm_rhs_squared <= 0) //solution is zero if RHS norm is zero
+  if (norm_rhs_squared <= tag.abs_tolerance()) //solution is zero if RHS norm is zero
     return result;
 
   for (unsigned int i = 0; i < tag.max_iterations(); ++i)
@@ -449,7 +456,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, cg_tag const & tag, P
       new_ip_rr = viennacl::linalg::inner_prod(residual, z);
 
     new_ipp_rr_over_norm_rhs = new_ip_rr / norm_rhs_squared;
-    if (std::fabs(new_ipp_rr_over_norm_rhs) < tag.tolerance() *  tag.tolerance())    //squared norms involved here
+    if (std::fabs(new_ipp_rr_over_norm_rhs) < tag.tolerance() *  tag.tolerance() || std::fabs(new_ip_rr) < tag.abs_tolerance() * tag.abs_tolerance())    //squared norms involved here
       break;
 
     beta = new_ip_rr / ip_rr;
@@ -461,6 +468,27 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, cg_tag const & tag, P
   //store last error estimate:
   tag.error(std::sqrt(std::fabs(new_ip_rr / norm_rhs_squared)));
 
+  return result;
+}
+
+/** @brief Convenience overload for calling the CG solver using types from the C++ STL.
+  *
+  * A std::vector<std::map<T, U> > matrix is convenient for e.g. finite element assembly.
+  * It is not the fastest option for setting up a system, but often it is fast enough - particularly for just trying things out.
+  */
+template<typename IndexT, typename NumericT, typename PreconditionerT>
+std::vector<NumericT> solve(std::vector< std::map<IndexT, NumericT> > const & A, std::vector<NumericT> const & rhs, cg_tag const & tag, PreconditionerT const & precond)
+{
+  viennacl::compressed_matrix<NumericT> vcl_A;
+  viennacl::copy(A, vcl_A);
+
+  viennacl::vector<NumericT> vcl_rhs(rhs.size());
+  viennacl::copy(rhs, vcl_rhs);
+
+  viennacl::vector<NumericT> vcl_result = solve(vcl_A, vcl_rhs, tag, precond);
+
+  std::vector<NumericT> result(vcl_result.size());
+  viennacl::copy(vcl_result, result);
   return result;
 }
 

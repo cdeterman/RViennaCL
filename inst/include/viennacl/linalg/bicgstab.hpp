@@ -54,10 +54,16 @@ public:
   * @param max_iters_before_restart   The maximum number of iterations before BiCGStab is reinitialized (to avoid accumulation of round-off errors)
   */
   bicgstab_tag(double tol = 1e-8, vcl_size_t max_iters = 400, vcl_size_t max_iters_before_restart = 200)
-    : tol_(tol), iterations_(max_iters), iterations_before_restart_(max_iters_before_restart) {}
+    : tol_(tol), abs_tol_(0), iterations_(max_iters), iterations_before_restart_(max_iters_before_restart) {}
 
   /** @brief Returns the relative tolerance */
   double tolerance() const { return tol_; }
+
+  /** @brief Returns the absolute tolerance */
+  double abs_tolerance() const { return abs_tol_; }
+  /** @brief Sets the absolute tolerance */
+  void abs_tolerance(double new_tol) { if (new_tol >= 0) abs_tol_ = new_tol; }
+
   /** @brief Returns the maximum number of iterations */
   vcl_size_t max_iterations() const { return iterations_; }
   /** @brief Returns the maximum number of iterations before a restart*/
@@ -74,6 +80,7 @@ public:
 
 private:
   double tol_;
+  double abs_tol_;
   vcl_size_t iterations_;
   vcl_size_t iterations_before_restart_;
 
@@ -128,7 +135,7 @@ namespace detail
     NumericT As_dot_r0 = 0;
     NumericT  s_dot_s  = 0;
 
-    if (norm_rhs_host <= 0) //solution is zero if RHS norm is zero
+    if (norm_rhs_host <= tag.abs_tolerance()) //solution is zero if RHS norm is zero
       return result;
 
     for (vcl_size_t i = 0; i < tag.max_iterations(); ++i)
@@ -182,7 +189,7 @@ namespace detail
       omega =   As_dot_s  / As_dot_As;
 
       residual_norm = std::sqrt(s_dot_s - NumericT(2.0) * omega * As_dot_s + omega * omega *  As_dot_As);
-      if (std::fabs(residual_norm / norm_rhs_host) < tag.tolerance())
+      if (std::fabs(residual_norm / norm_rhs_host) < tag.tolerance() || residual_norm < tag.abs_tolerance())
         break;
 
       // x_{j+1} = x_j + alpha * p_j + omega * s_j
@@ -451,7 +458,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
   CPU_NumericType new_ip_rr0star = 0;
   CPU_NumericType residual_norm = norm_rhs_host;
 
-  if (norm_rhs_host <= 0) //solution is zero if RHS norm is zero
+  if (norm_rhs_host <= tag.abs_tolerance()) //solution is zero if RHS norm is zero
     return result;
 
   bool restart_flag = true;
@@ -460,8 +467,8 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
   {
     if (restart_flag)
     {
-      residual = rhs;
-      residual -= viennacl::linalg::prod(matrix, result);
+      residual = viennacl::linalg::prod(matrix, result);
+      residual = rhs - residual;
       p = residual;
       r0star = residual;
       ip_rr0star = viennacl::linalg::norm_2(residual);
@@ -485,7 +492,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
 
     new_ip_rr0star = viennacl::linalg::inner_prod(residual, r0star);
     residual_norm = viennacl::linalg::norm_2(residual);
-    if (std::fabs(residual_norm / norm_rhs_host) < tag.tolerance())
+    if (std::fabs(residual_norm / norm_rhs_host) < tag.tolerance() || residual_norm < tag.abs_tolerance())
       break;
 
     beta = new_ip_rr0star / ip_rr0star * alpha/omega;
@@ -507,6 +514,27 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
   //store last error estimate:
   tag.error(residual_norm / norm_rhs_host);
 
+  return result;
+}
+
+/** @brief Convenience overload for calling the BiCGStab solver without preconditioner using types from the C++ STL.
+  *
+  * A std::vector<std::map<T, U> > matrix is convenient for e.g. finite element assembly.
+  * It is not the fastest option for setting up a system, but often it is fast enough - particularly for just trying things out.
+  */
+template<typename IndexT, typename NumericT>
+std::vector<NumericT> solve(std::vector< std::map<IndexT, NumericT> > const & A, std::vector<NumericT> const & rhs, bicgstab_tag const & tag)
+{
+  viennacl::compressed_matrix<NumericT> vcl_A;
+  viennacl::copy(A, vcl_A);
+
+  viennacl::vector<NumericT> vcl_rhs(rhs.size());
+  viennacl::copy(rhs, vcl_rhs);
+
+  viennacl::vector<NumericT> vcl_result = solve(vcl_A, vcl_rhs, tag);
+
+  std::vector<NumericT> result(vcl_result.size());
+  viennacl::copy(vcl_result, result);
   return result;
 }
 
@@ -550,7 +578,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
   CPU_NumericType new_ip_rr0star = 0;
   CPU_NumericType residual_norm = norm_rhs_host;
 
-  if (!norm_rhs_host) //solution is zero if RHS norm is zero
+  if (norm_rhs_host <= tag.abs_tolerance()) //solution is zero if RHS norm is zero
     return result;
 
   bool restart_flag = true;
@@ -559,8 +587,8 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
   {
     if (restart_flag)
     {
-      residual = rhs;
-      residual -= viennacl::linalg::prod(matrix, result);
+      residual = viennacl::linalg::prod(matrix, result);
+      residual = rhs - residual;
       precond.apply(residual);
       p = residual;
       r0star = residual;
@@ -586,7 +614,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
     residual = s - omega * tmp1;
 
     residual_norm = viennacl::linalg::norm_2(residual);
-    if (residual_norm / norm_rhs_host < tag.tolerance())
+    if (residual_norm / norm_rhs_host < tag.tolerance() || residual_norm < tag.abs_tolerance())
       break;
 
     new_ip_rr0star = viennacl::linalg::inner_prod(residual, r0star);
@@ -609,6 +637,27 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, bicgstab_tag const & 
   //store last error estimate:
   tag.error(residual_norm / norm_rhs_host);
 
+  return result;
+}
+
+/** @brief Convenience overload for calling the preconditioned BiCGStab solver using types from the C++ STL.
+  *
+  * A std::vector<std::map<T, U> > matrix is convenient for e.g. finite element assembly.
+  * It is not the fastest option for setting up a system, but often it is fast enough - particularly for just trying things out.
+  */
+template<typename IndexT, typename NumericT, typename PreconditionerT>
+std::vector<NumericT> solve(std::vector< std::map<IndexT, NumericT> > const & A, std::vector<NumericT> const & rhs, bicgstab_tag const & tag, PreconditionerT const & precond)
+{
+  viennacl::compressed_matrix<NumericT> vcl_A;
+  viennacl::copy(A, vcl_A);
+
+  viennacl::vector<NumericT> vcl_rhs(rhs.size());
+  viennacl::copy(rhs, vcl_rhs);
+
+  viennacl::vector<NumericT> vcl_result = solve(vcl_A, vcl_rhs, tag, precond);
+
+  std::vector<NumericT> result(vcl_result.size());
+  viennacl::copy(vcl_result, result);
   return result;
 }
 

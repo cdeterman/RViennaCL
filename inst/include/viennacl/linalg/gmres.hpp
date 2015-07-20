@@ -56,10 +56,16 @@ public:
   * @param krylov_dim     The maximum dimension of the Krylov space before restart (number of restarts is found by max_iterations / krylov_dim)
   */
   gmres_tag(double tol = 1e-10, unsigned int max_iterations = 300, unsigned int krylov_dim = 20)
-   : tol_(tol), iterations_(max_iterations), krylov_dim_(krylov_dim), iters_taken_(0) {}
+   : tol_(tol), abs_tol_(0), iterations_(max_iterations), krylov_dim_(krylov_dim), iters_taken_(0) {}
 
   /** @brief Returns the relative tolerance */
   double tolerance() const { return tol_; }
+
+  /** @brief Returns the absolute tolerance */
+  double abs_tolerance() const { return abs_tol_; }
+  /** @brief Sets the absolute tolerance */
+  void abs_tolerance(double new_tol) { if (new_tol >= 0) abs_tol_ = new_tol; }
+
   /** @brief Returns the maximum number of iterations */
   unsigned int max_iterations() const { return iterations_; }
   /** @brief Returns the maximum dimension of the Krylov space before restart */
@@ -85,6 +91,7 @@ public:
 
 private:
   double tol_;
+  double abs_tol_;
   unsigned int iterations_;
   unsigned int krylov_dim_;
 
@@ -213,14 +220,14 @@ namespace detail
         rho_0 = viennacl::linalg::norm_2(residual);
       }
 
-      if (rho_0 <= ScalarType(0))  // trivial right hand side?
+      if (rho_0 <= ScalarType(tag.abs_tolerance()))  // trivial right hand side?
         break;
 
       residual /= rho_0;
       rho = ScalarType(1);
 
       // check for convergence:
-      if (rho_0 / norm_rhs < tag.tolerance())
+      if (rho_0 / norm_rhs < tag.tolerance() || rho_0 < tag.abs_tolerance())
         break;
 
       //
@@ -605,7 +612,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, gmres_tag const & tag
 
   CPU_NumericType norm_rhs = viennacl::linalg::norm_2(rhs);
 
-  if (norm_rhs <= 0) //solution is zero if RHS norm is zero
+  if (norm_rhs <= tag.abs_tolerance()) //solution is zero if RHS norm is zero
     return result;
 
   tag.iters(0);
@@ -615,8 +622,8 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, gmres_tag const & tag
     //
     // (Re-)Initialize residual: r = b - A*x (without temporary for the result of A*x)
     //
-    res = rhs;
-    res -= viennacl::linalg::prod(matrix, result);  //initial guess zero
+    res = viennacl::linalg::prod(matrix, result);  //initial guess zero
+    res = rhs - res;
     precond.apply(res);
 
     CPU_NumericType rho_0 = viennacl::linalg::norm_2(res);
@@ -624,7 +631,7 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, gmres_tag const & tag
     //
     // Check for premature convergence
     //
-    if (rho_0 / norm_rhs < tag.tolerance() ) // norm_rhs is known to be nonzero here
+    if (rho_0 / norm_rhs < tag.tolerance() || rho_0 < tag.abs_tolerance()) // norm_rhs is known to be nonzero here
     {
       tag.error(rho_0 / norm_rhs);
       return result;
@@ -751,6 +758,27 @@ VectorT solve(MatrixT const & matrix, VectorT const & rhs, gmres_tag const & tag
       return result;
   }
 
+  return result;
+}
+
+/** @brief Convenience overload for calling the preconditioned BiCGStab solver using types from the C++ STL.
+  *
+  * A std::vector<std::map<T, U> > matrix is convenient for e.g. finite element assembly.
+  * It is not the fastest option for setting up a system, but often it is fast enough - particularly for just trying things out.
+  */
+template<typename IndexT, typename NumericT, typename PreconditionerT>
+std::vector<NumericT> solve(std::vector< std::map<IndexT, NumericT> > const & A, std::vector<NumericT> const & rhs, gmres_tag const & tag, PreconditionerT const & precond)
+{
+  viennacl::compressed_matrix<NumericT> vcl_A;
+  viennacl::copy(A, vcl_A);
+
+  viennacl::vector<NumericT> vcl_rhs(rhs.size());
+  viennacl::copy(rhs, vcl_rhs);
+
+  viennacl::vector<NumericT> vcl_result = solve(vcl_A, vcl_rhs, tag, precond);
+
+  std::vector<NumericT> result(vcl_result.size());
+  viennacl::copy(vcl_result, result);
   return result;
 }
 

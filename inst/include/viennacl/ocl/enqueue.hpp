@@ -81,8 +81,8 @@ void enqueue(KernelType & k, viennacl::ocl::command_queue const & queue)
 
     if (err != CL_SUCCESS)
     {
-      std::cerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
-      std::cerr << "ViennaCL: Smaller work sizes could not solve the problem. " << std::endl;
+//      std::cerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
+//      std::cerr << "ViennaCL: Smaller work sizes could not solve the problem. " << std::endl;
       VIENNACL_ERR_CHECK(err);
     }
   }
@@ -112,7 +112,7 @@ void enqueue(KernelType & k, viennacl::ocl::command_queue const & queue)
     if (err != CL_SUCCESS)
     {
       //could not start kernel with any parameters
-      std::cerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
+//      std::cerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
       VIENNACL_ERR_CHECK(err);
     }
   }
