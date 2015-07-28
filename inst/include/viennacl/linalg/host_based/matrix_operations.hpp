@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_HOST_BASED_MATRIX_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -36,6 +36,7 @@
 #include "viennacl/traits/stride.hpp"
 #include "viennacl/linalg/detail/op_applier.hpp"
 #include "viennacl/linalg/host_based/common.hpp"
+#include "viennacl/linalg/prod.hpp"
 
 namespace viennacl
 {
@@ -47,6 +48,58 @@ namespace host_based
 //
 // Introductory note: By convention, all dimensions are already checked in the dispatcher frontend. No need to double-check again in here!
 //
+
+template<typename DestNumericT, typename SrcNumericT>
+void convert(matrix_base<DestNumericT> & mat1, matrix_base<SrcNumericT> const & mat2)
+{
+  assert(mat1.row_major() == mat2.row_major() && bool("Addition/subtraction on mixed matrix layouts not supported yet!"));
+
+  DestNumericT      * data_A = detail::extract_raw_pointer<DestNumericT>(mat1);
+  SrcNumericT const * data_B = detail::extract_raw_pointer<SrcNumericT>(mat2);
+
+  vcl_size_t A_start1 = viennacl::traits::start1(mat1);
+  vcl_size_t A_start2 = viennacl::traits::start2(mat1);
+  vcl_size_t A_inc1   = viennacl::traits::stride1(mat1);
+  vcl_size_t A_inc2   = viennacl::traits::stride2(mat1);
+  vcl_size_t A_size1  = viennacl::traits::size1(mat1);
+  vcl_size_t A_size2  = viennacl::traits::size2(mat1);
+  vcl_size_t A_internal_size1  = viennacl::traits::internal_size1(mat1);
+  vcl_size_t A_internal_size2  = viennacl::traits::internal_size2(mat1);
+
+  vcl_size_t B_start1 = viennacl::traits::start1(mat2);
+  vcl_size_t B_start2 = viennacl::traits::start2(mat2);
+  vcl_size_t B_inc1   = viennacl::traits::stride1(mat2);
+  vcl_size_t B_inc2   = viennacl::traits::stride2(mat2);
+  vcl_size_t B_internal_size1  = viennacl::traits::internal_size1(mat2);
+  vcl_size_t B_internal_size2  = viennacl::traits::internal_size2(mat2);
+
+  if (mat1.row_major())
+  {
+    detail::matrix_array_wrapper<DestNumericT,      row_major, false> wrapper_A(data_A, A_start1, A_start2, A_inc1, A_inc2, A_internal_size1, A_internal_size2);
+    detail::matrix_array_wrapper<SrcNumericT const, row_major, false> wrapper_B(data_B, B_start1, B_start2, B_inc1, B_inc2, B_internal_size1, B_internal_size2);
+
+#ifdef VIENNACL_WITH_OPENMP
+    #pragma omp parallel for
+#endif
+    for (long row = 0; row < static_cast<long>(A_size1); ++row)
+      for (vcl_size_t col = 0; col < A_size2; ++col)
+        wrapper_A(row, col) = static_cast<DestNumericT>(wrapper_B(row, col));
+  }
+  else
+  {
+    detail::matrix_array_wrapper<DestNumericT,      column_major, false> wrapper_A(data_A, A_start1, A_start2, A_inc1, A_inc2, A_internal_size1, A_internal_size2);
+    detail::matrix_array_wrapper<SrcNumericT const, column_major, false> wrapper_B(data_B, B_start1, B_start2, B_inc1, B_inc2, B_internal_size1, B_internal_size2);
+
+#ifdef VIENNACL_WITH_OPENMP
+    #pragma omp parallel for
+#endif
+    for (long col = 0; col < static_cast<long>(A_size2); ++col)
+      for (vcl_size_t row = 0; row < A_size1; ++row)
+        wrapper_A(row, col) = static_cast<DestNumericT>(wrapper_B(row, col));
+  }
+}
+
+
 
 template<typename NumericT,
          typename SizeT, typename DistanceT>
@@ -1665,7 +1718,7 @@ template <typename NumericT, typename S1>
 
 
    viennacl::linalg::host_based::scaled_rank_1_update(vcl_P, beta, 1, 0, 1, vcl_D, vcl_D);
-   Q = prod(Q_temp, vcl_P);
+   Q = viennacl::linalg::prod(Q_temp, vcl_P);
 
  }
 

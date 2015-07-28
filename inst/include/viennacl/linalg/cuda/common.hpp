@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_CUDA_COMMON_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -22,6 +22,9 @@
     @brief Common routines for CUDA execution
 */
 
+#include <sstream>
+#include <cuda_runtime.h>
+#include "viennacl/backend/cuda.hpp"
 #include "viennacl/traits/handle.hpp"
 
 #define VIENNACL_CUDA_LAST_ERROR_CHECK(message)  detail::cuda_last_error_check (message, __FILE__, __LINE__)
@@ -149,6 +152,8 @@ namespace linalg
 {
 namespace cuda
 {
+
+
 namespace detail
 {
 
@@ -163,8 +168,9 @@ inline void cuda_last_error_check(const char * message, const char * file, const
 
   if (cudaSuccess != error_code)
   {
-    std::cerr << file << "(" << line << "): " << ": getLastCudaError() CUDA error " << error_code << ": " << cudaGetErrorString( error_code ) << " @ " << message << std::endl;
-    throw "CUDA error";
+    std::stringstream ss;
+    ss << file << "(" << line << "): " << ": getLastCudaError() CUDA error " << error_code << ": " << cudaGetErrorString( error_code ) << " @ " << message << std::endl;
+    throw viennacl::backend::cuda::cuda_exception(ss.str(), error_code);
   }
 }
 

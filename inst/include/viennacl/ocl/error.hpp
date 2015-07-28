@@ -2,7 +2,7 @@
 #define VIENNACL_OCL_ERROR_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -47,6 +47,7 @@
 #include <string>
 #include <iostream>
 #include <exception>
+#include <stdexcept>
 
 #define VIENNACL_BUG_REPORT_STRING  \
   "\nIf you think that this is a bug in ViennaCL, please report it at viennacl-support@lists.sourceforge.net and supply at least the following information:\n"\
@@ -59,7 +60,31 @@ namespace viennacl
 {
 namespace ocl
 {
-//Wrapper for OpenCL exceptions:
+//
+// Generic errors
+//
+class queue_not_found : public std::runtime_error
+{
+public:
+  queue_not_found(std::string const & what_arg) : std::runtime_error(what_arg) {}
+};
+
+class program_not_found : public std::runtime_error
+{
+public:
+  program_not_found(std::string const & what_arg) : std::runtime_error(what_arg) {}
+};
+
+class kernel_not_found : public std::runtime_error
+{
+public:
+  kernel_not_found(std::string const & what_arg) : std::runtime_error(what_arg) {}
+};
+
+
+//
+// Wrapper for OpenCL exceptions:
+//
 
 /** @brief Exception thrown in the case that a requested compute device was not found.
   *

@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_OPENCL_FFT_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
    Institute for Analysis and Scientific Computing,
    TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
  ============================================================================= */
@@ -27,6 +27,7 @@
 #include "viennacl/ocl/kernel.hpp"
 #include "viennacl/traits/handle.hpp"
 #include "viennacl/traits/stride.hpp"
+#include "viennacl/linalg/host_based/fft_operations.hpp"
 #include "viennacl/linalg/opencl/kernels/fft.hpp"
 #include "viennacl/linalg/opencl/kernels/matrix.hpp"
 

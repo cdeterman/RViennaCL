@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_CUDA_VECTOR_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -44,6 +44,30 @@ namespace cuda
 //
 // Introductory note: By convention, all dimensions are already checked in the dispatcher frontend. No need to double-check again in here!
 //
+template<typename DestNumericT, typename SrcNumericT>
+__global__ void convert_kernel(DestNumericT      * dest, unsigned int start_dest, unsigned int inc_dest, unsigned int size_dest,
+                               SrcNumericT const * src,  unsigned int start_src,  unsigned int inc_src)
+{
+  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                    i < size_dest;
+                    i += gridDim.x * blockDim.x)
+    dest[i*inc_dest+start_dest] = src[i*inc_src+start_src];
+}
+
+
+template<typename DestNumericT, typename SrcNumericT>
+void convert(vector_base<DestNumericT> & dest, vector_base<SrcNumericT> const & src)
+{
+  convert_kernel<<<128, 128>>>(viennacl::cuda_arg(dest),
+                              static_cast<unsigned int>(viennacl::traits::start(dest)),
+                              static_cast<unsigned int>(viennacl::traits::stride(dest)),
+                              static_cast<unsigned int>(viennacl::traits::size(dest)),
+
+                              viennacl::cuda_arg(src),
+                              static_cast<unsigned int>(viennacl::traits::start(src)),
+                              static_cast<unsigned int>(viennacl::traits::stride(src)) );
+  VIENNACL_CUDA_LAST_ERROR_CHECK("convert_kernel");
+}
 
 
 //////////////////////// av /////////////////////////////
@@ -2838,6 +2862,40 @@ void min_cpu(vector_base<NumericT> const & vec1,
     result = std::min(result, *it);
 }
 
+
+//////////////////
+
+/** @brief Computes the maximum of a vector, both reduction stages run on the GPU
+*
+* @param vec1   The vector
+* @param result The result GPU scalar
+*/
+template<typename NumericT>
+void sum_impl(vector_base<NumericT> const & vec1,
+              scalar<NumericT> & result)
+{
+  typedef NumericT      value_type;
+
+  viennacl::vector<NumericT> all_ones = viennacl::scalar_vector<NumericT>(vec1.size(), NumericT(1), viennacl::traits::context(vec1));
+  viennacl::linalg::cuda::inner_prod_impl(vec1, all_ones, result);
+}
+
+
+
+/** @brief Computes the maximum of a vector, first reduction stage on the GPU, second stage on the CPU
+*
+* @param vec1   The vector
+* @param result The result host scalar
+*/
+template<typename NumericT>
+void sum_cpu(vector_base<NumericT> const & vec1,
+             NumericT & result)
+{
+  typedef NumericT        value_type;
+
+  viennacl::vector<NumericT> all_ones = viennacl::scalar_vector<NumericT>(vec1.size(), NumericT(1), viennacl::traits::context(vec1));
+  viennacl::linalg::cuda::inner_prod_cpu(vec1, all_ones, result);
+}
 
 
 

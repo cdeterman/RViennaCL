@@ -2,7 +2,7 @@
 #define VIENNACL_OCL_CONTEXT_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -34,6 +34,7 @@
 #include <map>
 #include <cstdlib>
 #include "viennacl/ocl/forwards.h"
+#include "viennacl/ocl/error.hpp"
 #include "viennacl/ocl/handle.hpp"
 #include "viennacl/ocl/kernel.hpp"
 #include "viennacl/ocl/program.hpp"
@@ -290,10 +291,7 @@ public:
       return (it->second)[current_queue_id_];
     }
 
-//    std::cerr << "ViennaCL: FATAL ERROR: Could not obtain current command queue!" << std::endl;
-//    std::cout << "Number of queues in context: " << queues_.size() << std::endl;
-//    std::cout << "Number of devices in context: " << devices_.size() << std::endl;
-    throw "queue not found!";
+    throw queue_not_found("Could not obtain current command queue");
 
     //return ((*it)->second)[current_queue_id_];
   }
@@ -546,7 +544,7 @@ public:
         return **it;
     }
 //    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
-    throw "In class 'context': name invalid in get_program()";
+    throw program_not_found(name);
     //return programs_[0];  //return a defined object
   }
 
@@ -565,7 +563,7 @@ public:
         return **it;
     }
 //    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
-    throw "In class 'context': name invalid in get_program()";
+    throw program_not_found(name);
     //return programs_[0];  //return a defined object
   }
 
@@ -784,7 +782,7 @@ inline viennacl::ocl::kernel & viennacl::ocl::program::get_kernel(std::string co
   }
 //  std::cerr << "ViennaCL: FATAL ERROR: Could not find kernel '" << name << "' from program '" << name_ << "'" << std::endl;
 //  std::cout << "Number of kernels in program: " << kernels_.size() << std::endl;
-  throw "Kernel not found";
+  throw kernel_not_found("Kernel not found");
   //return kernels_[0];  //return a defined object
 }
 

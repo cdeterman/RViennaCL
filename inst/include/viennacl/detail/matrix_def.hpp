@@ -2,7 +2,7 @@
 #define VIENNACL_DETAIL_MATRIX_DEF_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -157,8 +157,17 @@ public:
                        bool is_row_major);
 #endif
 
+  /* Copy CTOR */
   matrix_base(const self_type & other);
+
+  /* Conversion CTOR */
+  template<typename OtherNumericT>
+  matrix_base(const matrix_base<OtherNumericT, SizeT, DistanceT> & other);
+
   self_type & operator=(const self_type & other);
+  template<typename OtherNumericT>
+  self_type & operator=(const matrix_base<OtherNumericT, SizeT, DistanceT> & other);
+
   /** @brief Implementation of the operation m1 = m2 @ alpha, where @ denotes either multiplication or division, and alpha is either a CPU or a GPU scalar
     * @param proxy  An expression template proxy class. */
   template<typename LHS, typename RHS, typename OP>
@@ -237,9 +246,10 @@ public:
   const handle_type & handle() const { return elements_; }
   viennacl::memory_types memory_domain() const { return elements_.get_active_handle_id(); }
   bool row_major() const { return row_major_; }
+  void switch_memory_context(viennacl::context new_ctx) { viennacl::backend::switch_memory_context<NumericT>(elements_, new_ctx); }
+
 protected:
   void set_handle(viennacl::backend::mem_handle const & h);
-  void switch_memory_context(viennacl::context new_ctx);
   void resize(size_type rows, size_type columns, bool preserve = true);
 private:
   size_type size1_;

@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_MATRIX_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -50,6 +50,33 @@ namespace viennacl
   namespace linalg
   {
 
+    template<typename DestNumericT, typename SrcNumericT>
+    void convert(matrix_base<DestNumericT> & dest, matrix_base<SrcNumericT> const & src)
+    {
+      assert(viennacl::traits::size1(dest) == viennacl::traits::size1(src) && bool("Incompatible matrix sizes in m1 = m2 (convert): size1(m1) != size1(m2)"));
+      assert(viennacl::traits::size2(dest) == viennacl::traits::size2(src) && bool("Incompatible matrix sizes in m1 = m2 (convert): size2(m1) != size2(m2)"));
+
+      switch (viennacl::traits::handle(dest).get_active_handle_id())
+      {
+        case viennacl::MAIN_MEMORY:
+          viennacl::linalg::host_based::convert(dest, src);
+          break;
+#ifdef VIENNACL_WITH_OPENCL
+        case viennacl::OPENCL_MEMORY:
+          viennacl::linalg::opencl::convert(dest, src);
+          break;
+#endif
+#ifdef VIENNACL_WITH_CUDA
+        case viennacl::CUDA_MEMORY:
+          viennacl::linalg::cuda::convert(dest, src);
+          break;
+#endif
+        case viennacl::MEMORY_NOT_INITIALIZED:
+          throw memory_exception("not initialised!");
+        default:
+          throw memory_exception("not implemented");
+      }
+    }
 
     template<typename NumericT,
               typename SizeT, typename DistanceT>
@@ -645,6 +672,22 @@ namespace viennacl
       }
     }
 
+
+    ///////////////////////// summation operations /////////////
+
+    template<typename NumericT>
+    void row_sum_impl(matrix_base<NumericT> const & A, vector_base<NumericT> & result)
+    {
+      viennacl::vector<NumericT> all_ones = viennacl::scalar_vector<NumericT>(A.size2(), NumericT(1), viennacl::traits::context(A));
+      viennacl::linalg::prod_impl(A, all_ones, result);
+    }
+
+    template<typename NumericT>
+    void column_sum_impl(matrix_base<NumericT> const & A, vector_base<NumericT> & result)
+    {
+      viennacl::vector<NumericT> all_ones = viennacl::scalar_vector<NumericT>(A.size1(), NumericT(1), viennacl::traits::context(A));
+      viennacl::linalg::prod_impl(matrix_expression< const matrix_base<NumericT>, const matrix_base<NumericT>, op_trans>(A, A), all_ones, result);
+    }
 
     ///////////////////////// Elementwise operations /////////////
 

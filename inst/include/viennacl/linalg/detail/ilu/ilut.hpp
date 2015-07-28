@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_DETAIL_ILUT_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -309,7 +309,7 @@ void precondition(viennacl::compressed_matrix<NumericT> const & A,
         if (value <= 0 && value >= 0)
         {
           std::cerr << "ViennaCL: FATAL ERROR in ILUT(): Diagonal entry computed to zero (" << value << ") in row " << i << "!" << std::endl;
-          throw "ILUT zero diagonal!";
+          throw zero_on_diagonal_exception("ILUT zero diagonal!");
         }
       }
       else // entry for U:

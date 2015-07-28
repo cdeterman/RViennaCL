@@ -2,7 +2,7 @@
 #define VIENNACL_TRAITS_SIZE_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -121,14 +121,8 @@ inline void resize(arma::SpMat<NumericT> & A,
 #endif
 
 #ifdef VIENNACL_WITH_EIGEN
-inline void resize(Eigen::MatrixXf & m,
-                   vcl_size_t new_rows,
-                   vcl_size_t new_cols)
-{
-  m.resize(new_rows, new_cols);
-}
-
-inline void resize(Eigen::MatrixXd & m,
+template<typename NumericT, int Options>
+inline void resize(Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, Options> & m,
                    vcl_size_t new_rows,
                    vcl_size_t new_cols)
 {
@@ -181,10 +175,10 @@ inline vcl_size_t size1(arma::SpMat<NumericT> const & A) { return A.n_rows; }
 #endif
 
 #ifdef VIENNACL_WITH_EIGEN
-inline vcl_size_t size1(Eigen::MatrixXf const & m) { return static_cast<vcl_size_t>(m.rows()); }
-inline vcl_size_t size1(Eigen::MatrixXd const & m) { return static_cast<vcl_size_t>(m.rows()); }
-inline vcl_size_t size1(Eigen::Map<Eigen::MatrixXf> const & m) { return static_cast<vcl_size_t>(m.rows()); }
-inline vcl_size_t size1(Eigen::Map<Eigen::MatrixXd> const & m) { return static_cast<vcl_size_t>(m.rows()); }
+template<typename NumericT, int Options>
+vcl_size_t size1(Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, Options> const & m) { return static_cast<vcl_size_t>(m.rows()); }
+template<typename NumericT, int Options>
+vcl_size_t size1(Eigen::Map< Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, Options> > const & m) { return static_cast<vcl_size_t>(m.rows()); }
 template<typename T, int options>
 inline vcl_size_t size1(Eigen::SparseMatrix<T, options> & m) { return static_cast<vcl_size_t>(m.rows()); }
 #endif
@@ -195,7 +189,7 @@ vcl_size_t size1(mtl::dense2D<NumericT, T> const & m) { return static_cast<vcl_s
 template<typename NumericT>
 vcl_size_t size1(mtl::compressed2D<NumericT> const & m) { return static_cast<vcl_size_t>(m.num_rows()); }
 #endif
-
+/** \endcond */
 
 
 //
@@ -206,6 +200,7 @@ template<typename MatrixType>
 typename result_of::size_type<MatrixType>::type
 size2(MatrixType const & mat) { return mat.size2(); }
 
+/** \cond */
 #ifdef VIENNACL_WITH_ARMADILLO
 template<typename NumericT>
 inline vcl_size_t size2(arma::Mat<NumericT> const & A) { return A.n_cols; }
@@ -213,12 +208,11 @@ template<typename NumericT>
 inline vcl_size_t size2(arma::SpMat<NumericT> const & A) { return A.n_cols; }
 #endif
 
-/** \cond */
 #ifdef VIENNACL_WITH_EIGEN
-inline vcl_size_t size2(Eigen::MatrixXf const & m) { return m.cols(); }
-inline vcl_size_t size2(Eigen::MatrixXd const & m) { return m.cols(); }
-inline vcl_size_t size2(Eigen::Map<Eigen::MatrixXf> const & m) { return m.cols(); }
-inline vcl_size_t size2(Eigen::Map<Eigen::MatrixXd> const & m) { return m.cols(); }
+template<typename NumericT, int Options>
+inline vcl_size_t size2(Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, Options> const & m) { return m.cols(); }
+template<typename NumericT, int Options>
+inline vcl_size_t size2(Eigen::Map< Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, Options> > const & m) { return m.cols(); }
 template<typename T, int options>
 inline vcl_size_t size2(Eigen::SparseMatrix<T, options> & m) { return m.cols(); }
 #endif
@@ -310,8 +304,6 @@ vcl_size_t size(vector_expression<LHS, const vector_tuple<RHS>, op_inner_prod> c
   return proxy.rhs().const_size();
 }
 
-/** \endcond */
-
 template<typename LhsT, typename RhsT, typename OpT, typename VectorT>
 vcl_size_t size(vector_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
                                   VectorT,
@@ -335,6 +327,38 @@ vcl_size_t size(vector_expression<const matrix_expression<const LhsT1, const Rhs
                                   op_prod> const & proxy)
 {
   return size1(proxy.lhs());
+}
+
+template<typename NumericT>
+vcl_size_t size(vector_expression<const matrix_base<NumericT>,
+                                  const matrix_base<NumericT>,
+                                  op_row_sum> const & proxy)
+{
+  return size1(proxy.lhs());
+}
+
+template<typename LhsT, typename RhsT, typename OpT>
+vcl_size_t size(vector_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
+                                  const matrix_expression<const LhsT, const RhsT, OpT>,
+                                  op_row_sum> const & proxy)
+{
+  return size1(proxy.lhs());
+}
+
+template<typename NumericT>
+vcl_size_t size(vector_expression<const matrix_base<NumericT>,
+                                  const matrix_base<NumericT>,
+                                  op_col_sum> const & proxy)
+{
+  return size2(proxy.lhs());
+}
+
+template<typename LhsT, typename RhsT, typename OpT>
+vcl_size_t size(vector_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
+                                  const matrix_expression<const LhsT, const RhsT, OpT>,
+                                  op_col_sum> const & proxy)
+{
+  return size2(proxy.lhs());
 }
 
 /** \endcond */

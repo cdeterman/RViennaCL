@@ -2,7 +2,7 @@
 #define VIENNACL_BACKEND_MEM_HANDLE_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -133,7 +133,7 @@ public:
 #ifdef VIENNACL_WITH_OPENCL
         active_handle_ = new_id;
 #else
-        throw "compiled without OpenCL suppport!";
+        throw memory_exception("compiled without OpenCL suppport!");
 #endif
       }
       else if (active_handle_ == CUDA_MEMORY)
@@ -141,11 +141,11 @@ public:
 #ifdef VIENNACL_WITH_CUDA
         active_handle_ = new_id;
 #else
-        throw "compiled without CUDA suppport!";
+        throw memory_exception("compiled without CUDA suppport!");
 #endif
       }
       else
-        throw "invalid new memory region!";
+        throw memory_exception("invalid new memory region!");
     }
   }
 

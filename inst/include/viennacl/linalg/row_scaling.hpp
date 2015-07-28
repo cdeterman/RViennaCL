@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_ROW_SCALING_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -120,7 +120,7 @@ namespace viennacl
                 diag_M[col_it.index1()] += (*col_it) * (*col_it);
             }
             if (!diag_M[row_it.index1()])
-              throw "ViennaCL: Zero row encountered while setting up row scaling preconditioner!";
+              throw zero_on_diagonal_exception("ViennaCL: Zero row encountered while setting up row scaling preconditioner!");
 
             if (tag.norm() == 2)
               diag_M[row_it.index1()] = std::sqrt(diag_M[row_it.index1()]);
@@ -177,7 +177,7 @@ namespace viennacl
               detail::row_info(mat, diag_M, detail::SPARSE_ROW_NORM_2);
               break;
             default:
-              throw "Unknown norm!";
+              throw unknown_norm_exception("Unknown norm when initializing row_scaling preconditioner!");
           }
         }
 

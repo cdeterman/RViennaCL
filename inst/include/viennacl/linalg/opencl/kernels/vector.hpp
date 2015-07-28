@@ -1,9 +1,24 @@
 #ifndef VIENNACL_LINALG_OPENCL_KERNELS_VECTOR_HPP
 #define VIENNACL_LINALG_OPENCL_KERNELS_VECTOR_HPP
 
-#include "viennacl/tools/tools.hpp"
+/* =========================================================================
+   Copyright (c) 2010-2015, Institute for Microelectronics,
+                            Institute for Analysis and Scientific Computing,
+                            TU Wien.
+   Portions of this software are copyright by UChicago Argonne, LLC.
 
-#include "viennacl/vector_proxy.hpp"
+                            -----------------
+                  ViennaCL - The Vienna Computing Library
+                            -----------------
+
+   Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
+
+   (A list of authors and contributors can be found in the manual)
+
+   License:         MIT (X11), see file LICENSE in the base directory
+============================================================================= */
+
+#include "viennacl/tools/tools.hpp"
 
 #include "viennacl/scheduler/forwards.h"
 #include "viennacl/scheduler/io.hpp"
@@ -169,7 +184,7 @@ public:
       viennacl::vector<NumericT> x;
       viennacl::vector<NumericT> y;
       viennacl::vector<NumericT> res;
-      viennacl::vector_range< viennacl::vector_base<NumericT> > da(res, viennacl::range(0,1));
+      viennacl::vector_range< viennacl::vector_base<NumericT> > da(res, viennacl::range(0, 1));
 
       generate_inner_prod_impl(handler, "inner_prod_1", reduction_params, 1, &x, &y, &da);
       generate_inner_prod_impl(handler, "inner_prod_2", reduction_params, 2, &x, &y, &da);
@@ -251,6 +266,105 @@ public:
     return viennacl::device_specific::at(handlers_map, h);
   }
 };
+
+
+
+template<typename StringT>
+void generate_vector_convert(StringT & source, std::string const & dest_type, std::string const & src_type)
+{
+ source.append(" __kernel void convert_" + dest_type + "_" + src_type + "( \n");
+ source.append("  __global " + dest_type + " * dest, \n");
+ source.append("  unsigned int start_dest, unsigned int inc_dest, unsigned int size_dest, \n");
+ source.append("  __global const " + src_type + " * src, \n");
+ source.append("  unsigned int start_src, unsigned int inc_src) \n");
+ source.append("  { \n");
+ source.append("   for (unsigned int i = get_global_id(0); i < size_dest; i += get_global_size(0)) \n");
+ source.append("     dest[start_dest + i * inc_dest] = src[start_src + i * inc_src]; \n");
+ source.append("  } \n");
+}
+
+/** @brief Main kernel class for vector conversion routines (e.g. convert vector<int> to vector<float>). */
+struct vector_convert
+{
+
+public:
+  static std::string program_name()
+  {
+    return "vector_convert";
+  }
+
+  static void init(viennacl::ocl::context & ctx)
+  {
+    static std::map<cl_context, bool> init_done;
+    if (!init_done[ctx.handle().get()])
+    {
+      std::string source;
+      source.reserve(4096);
+
+      // int
+      generate_vector_convert(source, viennacl::ocl::type_to_string<int>::apply(), viennacl::ocl::type_to_string<int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<int>::apply(), viennacl::ocl::type_to_string<unsigned int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<int>::apply(), viennacl::ocl::type_to_string<long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<int>::apply(), viennacl::ocl::type_to_string<unsigned long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<int>::apply(), viennacl::ocl::type_to_string<float>::apply());
+
+      // unsigned int
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned int>::apply(), viennacl::ocl::type_to_string<int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned int>::apply(), viennacl::ocl::type_to_string<unsigned int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned int>::apply(), viennacl::ocl::type_to_string<long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned int>::apply(), viennacl::ocl::type_to_string<unsigned long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned int>::apply(), viennacl::ocl::type_to_string<float>::apply());
+
+      // long
+      generate_vector_convert(source, viennacl::ocl::type_to_string<long>::apply(), viennacl::ocl::type_to_string<int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<long>::apply(), viennacl::ocl::type_to_string<unsigned int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<long>::apply(), viennacl::ocl::type_to_string<long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<long>::apply(), viennacl::ocl::type_to_string<unsigned long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<long>::apply(), viennacl::ocl::type_to_string<float>::apply());
+
+      // unsigned long
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned long>::apply(), viennacl::ocl::type_to_string<int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned long>::apply(), viennacl::ocl::type_to_string<unsigned int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned long>::apply(), viennacl::ocl::type_to_string<long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned long>::apply(), viennacl::ocl::type_to_string<unsigned long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned long>::apply(), viennacl::ocl::type_to_string<float>::apply());
+
+      // float
+      generate_vector_convert(source, viennacl::ocl::type_to_string<float>::apply(), viennacl::ocl::type_to_string<int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<float>::apply(), viennacl::ocl::type_to_string<unsigned int>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<float>::apply(), viennacl::ocl::type_to_string<long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<float>::apply(), viennacl::ocl::type_to_string<unsigned long>::apply());
+      generate_vector_convert(source, viennacl::ocl::type_to_string<float>::apply(), viennacl::ocl::type_to_string<float>::apply());
+
+      if (ctx.current_device().double_support())
+      {
+        viennacl::ocl::append_double_precision_pragma<double>(ctx, source);
+
+        generate_vector_convert(source, viennacl::ocl::type_to_string<int>::apply(),           viennacl::ocl::type_to_string<double>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned int>::apply(),  viennacl::ocl::type_to_string<double>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<long>::apply(),          viennacl::ocl::type_to_string<double>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<unsigned long>::apply(), viennacl::ocl::type_to_string<double>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<float>::apply(),         viennacl::ocl::type_to_string<double>::apply());
+
+        generate_vector_convert(source, viennacl::ocl::type_to_string<double>::apply(), viennacl::ocl::type_to_string<int>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<double>::apply(), viennacl::ocl::type_to_string<unsigned int>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<double>::apply(), viennacl::ocl::type_to_string<long>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<double>::apply(), viennacl::ocl::type_to_string<unsigned long>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<double>::apply(), viennacl::ocl::type_to_string<float>::apply());
+        generate_vector_convert(source, viennacl::ocl::type_to_string<double>::apply(), viennacl::ocl::type_to_string<double>::apply());
+      }
+
+      std::string prog_name = program_name();
+      #ifdef VIENNACL_BUILD_INFO
+      std::cout << "Creating program " << prog_name << std::endl;
+      #endif
+      ctx.add_program(source, prog_name);
+      init_done[ctx.handle().get()] = true;
+    } //if
+  } //init
+
+};
+
 
 }  // namespace kernels
 }  // namespace opencl

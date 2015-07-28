@@ -2,7 +2,7 @@
 #define VIENNACL_VECTOR_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -334,6 +334,22 @@ vector_base<NumericT, SizeT, DistanceT>::vector_base(const vector_base<NumericT,
   }
 }
 
+// Conversion CTOR:
+template<typename NumericT, typename SizeT, typename DistanceT>
+template<typename OtherNumericT>
+vector_base<NumericT, SizeT, DistanceT>::vector_base(const vector_base<OtherNumericT> & other) :
+  size_(other.size()), start_(0), stride_(1),
+  internal_size_(viennacl::tools::align_to_multiple<size_type>(other.size(), dense_padding_size))
+{
+  elements_.switch_active_handle_id(viennacl::traits::active_handle_id(other));
+  if (internal_size() > 0)
+  {
+    viennacl::backend::memory_create(elements_, sizeof(NumericT)*internal_size(), viennacl::traits::context(other));
+    clear();
+    self_type::operator=(other);
+  }
+}
+
 
 
 template<class NumericT, typename SizeT, typename DistanceT>
@@ -389,10 +405,10 @@ vector_base<NumericT, SizeT, DistanceT> & vector_base<NumericT, SizeT, DistanceT
   return *this;
 }
 
-// assign vector range or vector slice
+// convert from vector with other numeric type
 template<class NumericT, typename SizeT, typename DistanceT>
-template<typename T>
-vector_base<NumericT, SizeT, DistanceT> & vector_base<NumericT, SizeT, DistanceT>:: operator = (const vector_base<T> & v1)
+template<typename OtherNumericT>
+vector_base<NumericT, SizeT, DistanceT> & vector_base<NumericT, SizeT, DistanceT>:: operator = (const vector_base<OtherNumericT> & v1)
 {
   assert( ( (v1.size() == size()) || (size() == 0) )
           && bool("Incompatible vector sizes!"));
@@ -408,8 +424,7 @@ vector_base<NumericT, SizeT, DistanceT> & vector_base<NumericT, SizeT, DistanceT
     }
   }
 
-  viennacl::linalg::av(*this,
-                       v1, NumericT(1.0), 1, false, false);
+  viennacl::linalg::convert(*this, v1);
 
   return *this;
 }

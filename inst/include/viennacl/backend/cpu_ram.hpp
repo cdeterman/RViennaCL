@@ -2,7 +2,7 @@
 #define VIENNACL_BACKEND_CPU_RAM_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #endif
 
+#include "viennacl/forwards.h"
 #include "viennacl/tools/shared_ptr.hpp"
 
 namespace viennacl
@@ -117,7 +118,7 @@ inline void memory_copy(handle_type const & src_buffer,
   #pragma omp parallel for
 #endif
   for (long i=0; i<long(bytes_to_copy); ++i)
-    dst_buffer.get()[i+dst_offset] = src_buffer.get()[i + src_offset];
+    dst_buffer.get()[vcl_size_t(i)+dst_offset] = src_buffer.get()[vcl_size_t(i) + src_offset];
 }
 
 /** @brief Writes data from main RAM identified by 'ptr' to the buffer identified by 'dst_buffer'
@@ -139,7 +140,7 @@ inline void memory_write(handle_type & dst_buffer,
   #pragma omp parallel for
 #endif
   for (long i=0; i<long(bytes_to_copy); ++i)
-    dst_buffer.get()[i+dst_offset] = static_cast<const char *>(ptr)[i];
+    dst_buffer.get()[vcl_size_t(i)+dst_offset] = static_cast<const char *>(ptr)[i];
 }
 
 /** @brief Reads data from a buffer back to main RAM.
@@ -161,7 +162,7 @@ inline void memory_read(handle_type const & src_buffer,
   #pragma omp parallel for
 #endif
   for (long i=0; i<long(bytes_to_copy); ++i)
-    static_cast<char *>(ptr)[i] = src_buffer.get()[i+src_offset];
+    static_cast<char *>(ptr)[i] = src_buffer.get()[vcl_size_t(i)+src_offset];
 }
 
 }

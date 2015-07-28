@@ -2,7 +2,7 @@
 #define VIENNACL_SCHEDULER_STATEMENT_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -218,10 +218,6 @@ namespace result_of
   template<> struct op_type_info<op_prod>                          { enum { id = OPERATION_BINARY_MAT_VEC_PROD_TYPE, family = OPERATION_BINARY_TYPE_FAMILY}; };
   template<> struct op_type_info<op_mat_mat_prod>                  { enum { id = OPERATION_BINARY_MAT_MAT_PROD_TYPE, family = OPERATION_BINARY_TYPE_FAMILY}; };
   template<> struct op_type_info<op_inner_prod>                    { enum { id = OPERATION_BINARY_INNER_PROD_TYPE,   family = OPERATION_BINARY_TYPE_FAMILY}; };
-
-  template<typename OP> struct op_type_info<op_reduce_vector<OP>   >      { enum { id = op_type_info<OP>::id,        family = OPERATION_VECTOR_REDUCTION_TYPE_FAMILY}; };
-  template<typename OP> struct op_type_info<op_reduce_rows<OP>   >       { enum { id = op_type_info<OP>::id,         family = OPERATION_ROWS_REDUCTION_TYPE_FAMILY}; };
-  template<typename OP> struct op_type_info<op_reduce_columns<OP>   >      { enum { id = op_type_info<OP>::id,       family = OPERATION_COLUMNS_REDUCTION_TYPE_FAMILY}; };
 
   //elementwise operator
   template<> struct op_type_info<op_assign>                        { enum { id = OPERATION_BINARY_ASSIGN_TYPE,       family = OPERATION_BINARY_TYPE_FAMILY}; };

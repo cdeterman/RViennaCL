@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_OPENCL_MATRIX_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -54,6 +54,31 @@ namespace linalg
 namespace opencl
 {
 
+namespace detail
+{
+
+  template<typename NumericT>
+  viennacl::ocl::kernel & legacy_kernel_for_matrix(matrix_base<NumericT> const & M, std::string const & kernel_name)
+  {
+    viennacl::ocl::context & ctx = traits::opencl_context(M);
+    viennacl::ocl::program * program;
+    if (M.row_major())
+    {
+      typedef viennacl::linalg::opencl::kernels::matrix_legacy<NumericT, row_major>  KernelClass;
+      KernelClass::init(ctx);
+      program = &ctx.get_program(KernelClass::program_name());
+    }
+    else
+    {
+      typedef viennacl::linalg::opencl::kernels::matrix_legacy<NumericT, column_major>  KernelClass;
+      KernelClass::init(ctx);
+      program = &ctx.get_program(KernelClass::program_name());
+    }
+    return program->get_kernel(kernel_name);
+  }
+
+}
+
 //
 // Introductory note: By convention, all dimensions are already checked in the dispatcher frontend. No need to double-check again in here!
 //
@@ -65,6 +90,28 @@ const std::string SVD_HOUSEHOLDER_UPDATE_QL_KERNEL = "house_update_QL";
 const std::string SVD_GIVENS_NEXT_KERNEL = "givens_next";
 const std::string SVD_COPY_COL_KERNEL = "copy_col";
 const std::string SVD_COPY_ROW_KERNEL = "copy_row";
+
+template<typename DestNumericT, typename SrcNumericT>
+void convert(matrix_base<DestNumericT> & dest, matrix_base<SrcNumericT> const & src)
+{
+  assert(dest.row_major() == src.row_major() && bool("Addition/subtraction on mixed matrix layouts not supported yet!"));
+
+  assert(viennacl::traits::opencl_handle(dest).context() == viennacl::traits::opencl_handle(src).context() && bool("Matrices do not reside in the same OpenCL context. Automatic migration not yet supported!"));
+
+  std::string kernel_name("convert_");
+  kernel_name += dest.row_major() ? "row_" : "col_";
+  kernel_name += viennacl::ocl::type_to_string<DestNumericT>::apply();
+  kernel_name += "_";
+  kernel_name += viennacl::ocl::type_to_string<SrcNumericT>::apply();
+
+  viennacl::ocl::context & ctx = const_cast<viennacl::ocl::context &>(viennacl::traits::opencl_handle(dest).context());
+  viennacl::linalg::opencl::kernels::matrix_convert::init(ctx);
+  viennacl::ocl::kernel& k = ctx.get_kernel(viennacl::linalg::opencl::kernels::matrix_convert::program_name(), kernel_name);
+
+  viennacl::ocl::enqueue(k( dest, cl_uint(dest.start1()), cl_uint(dest.stride1()), cl_uint(dest.size1()), cl_uint(dest.internal_size1()), cl_uint(dest.start2()), cl_uint(dest.stride2()), cl_uint(dest.size2()), cl_uint(dest.internal_size2()),
+                            src,  cl_uint( src.start1()), cl_uint( src.stride1()), cl_uint( src.size1()), cl_uint( src.internal_size1()), cl_uint( src.start2()), cl_uint( src.stride2()), cl_uint( src.size2()), cl_uint( src.internal_size2())
+                        ) );
+}
 
 template<typename NumericT,
          typename ScalarT1>

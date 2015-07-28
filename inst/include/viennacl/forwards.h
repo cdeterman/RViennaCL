@@ -2,7 +2,7 @@
 #define VIENNACL_FORWARDS_H
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -64,6 +64,7 @@
 #include <cstddef>
 #include <cassert>
 #include <string>
+#include <stdexcept>
 
 #include "viennacl/meta/enable_if.hpp"
 #include "viennacl/version.hpp"
@@ -111,14 +112,14 @@ namespace viennacl
  /** @brief A tag class representing less-than-or-equal-to */
  struct op_leq {};
 
-  template<class T>
-  struct op_reduce_vector{ };
+  /** @brief A tag class representing the summation of a vector */
+  struct op_sum {};
 
-  template<class T>
-  struct op_reduce_rows{ };
+  /** @brief A tag class representing the summation of all rows of a matrix */
+  struct op_row_sum {};
 
-  template<class T>
-  struct op_reduce_columns{ };
+  /** @brief A tag class representing the summation of all columns of a matrix */
+  struct op_col_sum {};
 
   /** @brief A tag class representing element-wise casting operations on vectors and matrices */
   template<typename OP>
@@ -593,6 +594,18 @@ namespace viennacl
     std::string message_;
   };
 
+  class zero_on_diagonal_exception : public std::runtime_error
+  {
+  public:
+    zero_on_diagonal_exception(std::string const & what_arg) : std::runtime_error(what_arg) {}
+  };
+
+  class unknown_norm_exception : public std::runtime_error
+  {
+  public:
+    unknown_norm_exception(std::string const & what_arg) : std::runtime_error(what_arg) {}
+  };
+
 
 
   namespace tools
@@ -755,6 +768,22 @@ namespace viennacl
     void min_cpu(viennacl::vector_expression<LHS, RHS, OP> const & vec,
                  S2 & result);
 
+    //forward definition of sum()-related functions
+    template<typename T>
+    void sum_impl(vector_base<T> const & vec, scalar<T> & result);
+
+    template<typename LHS, typename RHS, typename OP, typename T>
+    void sum_impl(viennacl::vector_expression<LHS, RHS, OP> const & vec,
+                  scalar<T> & result);
+
+
+    template<typename T>
+    void sum_cpu(vector_base<T> const & vec, T & result);
+
+    template<typename LHS, typename RHS, typename OP, typename S2>
+    void sum_cpu(viennacl::vector_expression<LHS, RHS, OP> const & vec,
+                 S2 & result);
+
 
     // forward definition of frobenius norm:
     template<typename T>
@@ -790,6 +819,17 @@ namespace viennacl
                                  >::type
     prod_impl(const SparseMatrixType & mat,
               const vector<SCALARTYPE, ALIGNMENT> & vec);
+
+    // forward definition of summation routines for matrices:
+
+    template<typename NumericT>
+    void row_sum_impl(const matrix_base<NumericT> & A,
+                            vector_base<NumericT> & result);
+
+    template<typename NumericT>
+    void column_sum_impl(const matrix_base<NumericT> & A,
+                               vector_base<NumericT> & result);
+
 #endif
 
     namespace detail

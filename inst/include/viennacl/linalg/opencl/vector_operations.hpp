@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_OPENCL_VECTOR_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -48,9 +48,29 @@ namespace linalg
 {
 namespace opencl
 {
+
 //
 // Introductory note: By convention, all dimensions are already checked in the dispatcher frontend. No need to double-check again in here!
 //
+template<typename DestNumericT, typename SrcNumericT>
+void convert(vector_base<DestNumericT> & dest, vector_base<SrcNumericT> const & src)
+{
+  assert(viennacl::traits::opencl_handle(dest).context() == viennacl::traits::opencl_handle(src).context() && bool("Vectors do not reside in the same OpenCL context. Automatic migration not yet supported!"));
+
+  std::string kernel_name("convert_");
+  kernel_name += viennacl::ocl::type_to_string<DestNumericT>::apply();
+  kernel_name += "_";
+  kernel_name += viennacl::ocl::type_to_string<SrcNumericT>::apply();
+
+  viennacl::ocl::context & ctx = const_cast<viennacl::ocl::context &>(viennacl::traits::opencl_handle(dest).context());
+  viennacl::linalg::opencl::kernels::vector_convert::init(ctx);
+  viennacl::ocl::kernel& k = ctx.get_kernel(viennacl::linalg::opencl::kernels::vector_convert::program_name(), kernel_name);
+
+  viennacl::ocl::enqueue(k( dest, cl_uint(dest.start()), cl_uint(dest.stride()), cl_uint(dest.size()),
+                            src,  cl_uint( src.start()), cl_uint( src.stride())
+                        ) );
+
+}
 
 template<typename NumericT, typename ScalarT1>
 void av(vector_base<NumericT> & x,
@@ -452,6 +472,35 @@ void min_cpu(vector_base<NumericT> const & x,
   result = tmp;
 }
 
+////////// sum
+
+/** @brief Computes the sum over all entries of a vector
+*
+* @param x      The vector
+* @param result The result scalar
+*/
+template<typename NumericT>
+void sum_impl(vector_base<NumericT> const & x,
+                   scalar<NumericT> & result)
+{
+  assert(viennacl::traits::opencl_handle(x).context() == viennacl::traits::opencl_handle(result).context() && bool("Operands do not reside in the same OpenCL context. Automatic migration not yet supported!"));
+
+  viennacl::vector<NumericT> all_ones = viennacl::scalar_vector<NumericT>(x.size(), NumericT(1), viennacl::traits::context(x));
+  viennacl::linalg::opencl::inner_prod_impl(x, all_ones, result);
+}
+
+/** @brief Computes the sum over all entries of a vector.
+*
+* @param x      The vector
+* @param result The result scalar
+*/
+template<typename NumericT>
+void sum_cpu(vector_base<NumericT> const & x, NumericT & result)
+{
+  scalar<NumericT> tmp(0, viennacl::traits::context(x));
+  sum_impl(x, tmp);
+  result = tmp;
+}
 
 
 //TODO: Special case x == y allows improvement!!

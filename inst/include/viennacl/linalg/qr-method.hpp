@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_QR_METHOD_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -769,7 +769,7 @@ void update_float_QR_column_gpu(matrix_base<SCALARTYPE> & A,
         }
 
 
-        boost::numeric::ublas::matrix<float> eigen_values(A.size1(), A.size1());
+        boost::numeric::ublas::matrix<SCALARTYPE> eigen_values(A.size1(), A.size1());
         eigen_values.clear();
 
         for (vcl_size_t i = 0; i < A.size1(); i++)
@@ -811,6 +811,20 @@ void qr_method_sym(viennacl::matrix<SCALARTYPE>& A,
     std::vector<SCALARTYPE> E(A.size1());
 
     detail::qr_method(A, Q, D, E, true);
+}
+
+template <typename SCALARTYPE>
+void qr_method_sym(viennacl::matrix<SCALARTYPE>& A,
+                   viennacl::matrix<SCALARTYPE>& Q,
+                   viennacl::vector_base<SCALARTYPE>& D
+                  )
+{
+    std::vector<SCALARTYPE> std_D(D.size());
+    std::vector<SCALARTYPE> E(A.size1());
+
+    viennacl::copy(D, std_D);
+    detail::qr_method(A, Q, std_D, E, true);
+    viennacl::copy(std_D, D);
 }
 
 }

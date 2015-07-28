@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_VECTOR_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -32,6 +32,7 @@
 #include "viennacl/traits/start.hpp"
 #include "viennacl/traits/handle.hpp"
 #include "viennacl/traits/stride.hpp"
+#include "viennacl/linalg/detail/op_executor.hpp"
 #include "viennacl/linalg/host_based/vector_operations.hpp"
 
 #ifdef VIENNACL_WITH_OPENCL
@@ -46,6 +47,33 @@ namespace viennacl
 {
   namespace linalg
   {
+    template<typename DestNumericT, typename SrcNumericT>
+    void convert(vector_base<DestNumericT> & dest, vector_base<SrcNumericT> const & src)
+    {
+      assert(viennacl::traits::size(dest) == viennacl::traits::size(src) && bool("Incompatible vector sizes in v1 = v2 (convert): size(v1) != size(v2)"));
+
+      switch (viennacl::traits::handle(dest).get_active_handle_id())
+      {
+        case viennacl::MAIN_MEMORY:
+          viennacl::linalg::host_based::convert(dest, src);
+          break;
+#ifdef VIENNACL_WITH_OPENCL
+        case viennacl::OPENCL_MEMORY:
+          viennacl::linalg::opencl::convert(dest, src);
+          break;
+#endif
+#ifdef VIENNACL_WITH_CUDA
+        case viennacl::CUDA_MEMORY:
+          viennacl::linalg::cuda::convert(dest, src);
+          break;
+#endif
+        case viennacl::MEMORY_NOT_INITIALIZED:
+          throw memory_exception("not initialised!");
+        default:
+          throw memory_exception("not implemented");
+      }
+    }
+
     template<typename T, typename ScalarType1>
     void av(vector_base<T> & vec1,
             vector_base<T> const & vec2, ScalarType1 const & alpha, vcl_size_t len_alpha, bool reciprocal_alpha, bool flip_sign_alpha)
@@ -846,6 +874,7 @@ namespace viennacl
       return index_norm_inf(temp);
     }
 
+///////////////////
 
     /** @brief Computes the maximum of a vector with final reduction on the CPU
     *
@@ -932,6 +961,7 @@ namespace viennacl
       max_cpu(temp, result);
     }
 
+///////////////////
 
     /** @brief Computes the minimum of a vector with final reduction on the CPU
     *
@@ -1017,6 +1047,95 @@ namespace viennacl
       viennacl::vector<typename viennacl::result_of::cpu_value_type<LHS>::type> temp = vec;
       min_cpu(temp, result);
     }
+
+///////////////////
+
+    /** @brief Computes the sum of a vector with final reduction on the device (GPU, etc.)
+    *
+    * @param vec The vector
+    * @param result The result scalar
+    */
+    template<typename NumericT>
+    void sum_impl(vector_base<NumericT> const & vec, viennacl::scalar<NumericT> & result)
+    {
+      switch (viennacl::traits::handle(vec).get_active_handle_id())
+      {
+        case viennacl::MAIN_MEMORY:
+          viennacl::linalg::host_based::sum_impl(vec, result);
+          break;
+#ifdef VIENNACL_WITH_OPENCL
+        case viennacl::OPENCL_MEMORY:
+          viennacl::linalg::opencl::sum_impl(vec, result);
+          break;
+#endif
+#ifdef VIENNACL_WITH_CUDA
+        case viennacl::CUDA_MEMORY:
+          viennacl::linalg::cuda::sum_impl(vec, result);
+          break;
+#endif
+        case viennacl::MEMORY_NOT_INITIALIZED:
+          throw memory_exception("not initialised!");
+        default:
+          throw memory_exception("not implemented");
+      }
+    }
+
+    /** @brief Computes the sum of a vector with final reduction on the CPU - interface for a vector expression. Creates a temporary.
+    *
+    * @param vec    The vector expression
+    * @param result The result scalar
+    */
+    template<typename LHS, typename RHS, typename OP, typename NumericT>
+    void sum_impl(viennacl::vector_expression<LHS, RHS, OP> const & vec, viennacl::scalar<NumericT> & result)
+    {
+      viennacl::vector<NumericT> temp = vec;
+      sum_impl(temp, result);
+    }
+
+
+    /** @brief Computes the sum of a vector with final reduction on the CPU
+    *
+    * @param vec The vector
+    * @param result The result scalar
+    */
+    template<typename T>
+    void sum_cpu(vector_base<T> const & vec, T & result)
+    {
+      switch (viennacl::traits::handle(vec).get_active_handle_id())
+      {
+        case viennacl::MAIN_MEMORY:
+          viennacl::linalg::host_based::sum_impl(vec, result);
+          break;
+#ifdef VIENNACL_WITH_OPENCL
+        case viennacl::OPENCL_MEMORY:
+          viennacl::linalg::opencl::sum_cpu(vec, result);
+          break;
+#endif
+#ifdef VIENNACL_WITH_CUDA
+        case viennacl::CUDA_MEMORY:
+          viennacl::linalg::cuda::sum_cpu(vec, result);
+          break;
+#endif
+        case viennacl::MEMORY_NOT_INITIALIZED:
+          throw memory_exception("not initialised!");
+        default:
+          throw memory_exception("not implemented");
+      }
+    }
+
+    /** @brief Computes the sum of a vector with final reduction on the CPU - interface for a vector expression. Creates a temporary.
+    *
+    * @param vec    The vector expression
+    * @param result The result scalar
+    */
+    template<typename LHS, typename RHS, typename OP, typename S2>
+    void sum_cpu(viennacl::vector_expression<LHS, RHS, OP> const & vec, S2 & result)
+    {
+      viennacl::vector<typename viennacl::result_of::cpu_value_type<LHS>::type> temp = vec;
+      sum_cpu(temp, result);
+    }
+
+
 
 
 

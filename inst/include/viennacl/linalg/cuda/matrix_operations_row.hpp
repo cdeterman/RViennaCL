@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_CUDA_MATRIX_OPERATIONS_ROW_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -29,6 +29,27 @@ namespace linalg
 {
 namespace cuda
 {
+
+template<typename DestNumericT, typename SrcNumericT>
+__global__ void convert_row_kernel(
+          DestNumericT * A,
+          unsigned int A_start1, unsigned int A_start2,
+          unsigned int A_inc1,   unsigned int A_inc2,
+          unsigned int A_size1,  unsigned int A_size2,
+          unsigned int A_internal_size1,  unsigned int A_internal_size2,
+
+          const SrcNumericT * B,
+          unsigned int B_start1, unsigned int B_start2,
+          unsigned int B_inc1,   unsigned int B_inc2,
+          unsigned int B_internal_size1,  unsigned int B_internal_size2)
+{
+  unsigned int row_gid = (blockIdx.x * blockDim.x + threadIdx.x) / blockDim.x;
+  unsigned int col_gid = (blockIdx.x * blockDim.x + threadIdx.x) % blockDim.x;
+
+  for (unsigned int row = row_gid; row < A_size1; row += gridDim.x)
+    for (unsigned int col = col_gid; col < A_size2; col += blockDim.x)
+      A[(row * A_inc1 + A_start1) * A_internal_size2 + col * A_inc2 + A_start2] = B[(row * B_inc1 + B_start1) * B_internal_size2 + col * B_inc2 + B_start2];
+}
 
 //Matrix transpose kernel
 template<typename NumericT>

@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_HOST_BASED_VECTOR_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -64,6 +64,25 @@ namespace detail
 //
 // Introductory note: By convention, all dimensions are already checked in the dispatcher frontend. No need to double-check again in here!
 //
+template<typename DestNumericT, typename SrcNumericT>
+void convert(vector_base<DestNumericT> & dest, vector_base<SrcNumericT> const & src)
+{
+  DestNumericT      * data_dest = detail::extract_raw_pointer<DestNumericT>(dest);
+  SrcNumericT const * data_src  = detail::extract_raw_pointer<SrcNumericT>(src);
+
+  vcl_size_t start_dest = viennacl::traits::start(dest);
+  vcl_size_t inc_dest   = viennacl::traits::stride(dest);
+  vcl_size_t size_dest  = viennacl::traits::size(dest);
+
+  vcl_size_t start_src = viennacl::traits::start(src);
+  vcl_size_t inc_src   = viennacl::traits::stride(src);
+
+#ifdef VIENNACL_WITH_OPENMP
+  #pragma omp parallel for if (size_dest > VIENNACL_OPENMP_VECTOR_MIN_SIZE)
+#endif
+  for (long i = 0; i < static_cast<long>(size_dest); ++i)
+    data_dest[static_cast<vcl_size_t>(i)*inc_dest+start_dest] = static_cast<DestNumericT>(data_src[static_cast<vcl_size_t>(i)*inc_src+start_src]);
+}
 
 template<typename NumericT, typename ScalarT1>
 void av(vector_base<NumericT> & vec1,
@@ -868,6 +887,31 @@ void min_impl(vector_base<NumericT> const & vec1,
   result = temp;  //Note: Assignment to result might be expensive, thus 'temp' is used for accumulation
 }
 
+/** @brief Computes the maximum of a vector
+*
+* @param vec1 The vector
+* @param result The result scalar
+*/
+template<typename NumericT, typename ScalarT>
+void sum_impl(vector_base<NumericT> const & vec1,
+              ScalarT & result)
+{
+  typedef NumericT       value_type;
+
+  value_type const * data_vec1 = detail::extract_raw_pointer<value_type>(vec1);
+
+  vcl_size_t start1 = viennacl::traits::start(vec1);
+  vcl_size_t inc1   = viennacl::traits::stride(vec1);
+  vcl_size_t size1  = viennacl::traits::size(vec1);
+
+  value_type temp = 0;
+
+  // Note: Have a look at inner_prod and norm_X before adding OpenMP pragmas here
+  for (vcl_size_t i = 0; i < size1; ++i)
+    temp += data_vec1[i*inc1+start1];
+
+  result = temp;  //Note: Assignment to result might be expensive, thus 'temp' is used for accumulation
+}
 
 
 /** @brief Computes a plane rotation of two vectors.

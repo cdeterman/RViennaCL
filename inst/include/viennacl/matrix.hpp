@@ -2,7 +2,7 @@
 #define VIENNACL_MATRIX_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -223,8 +223,27 @@ matrix_base<NumericT, SizeT, DistanceT>::matrix_base(cl_mem mem, viennacl::conte
 }
 #endif
 
+// Copy CTOR
 template<class NumericT, typename SizeT, typename DistanceT>
 matrix_base<NumericT, SizeT, DistanceT>::matrix_base(const matrix_base<NumericT, SizeT, DistanceT> & other) :
+  size1_(other.size1()), size2_(other.size2()), start1_(0), start2_(0), stride1_(1), stride2_(1),
+  internal_size1_(viennacl::tools::align_to_multiple<size_type>(size1_, dense_padding_size)),
+  internal_size2_(viennacl::tools::align_to_multiple<size_type>(size2_, dense_padding_size)),
+  row_major_fixed_(true), row_major_(other.row_major())
+{
+  elements_.switch_active_handle_id(viennacl::traits::active_handle_id(other));
+  if (internal_size() > 0)
+  {
+    viennacl::backend::memory_create(elements_, sizeof(NumericT)*internal_size(), viennacl::traits::context(other));
+    clear();
+    self_type::operator=(other);
+  }
+}
+
+// Conversion CTOR
+template<typename NumericT, typename SizeT, typename DistanceT>
+template<typename OtherNumericT>
+matrix_base<NumericT, SizeT, DistanceT>::matrix_base(const matrix_base<OtherNumericT, SizeT, DistanceT> & other) :
   size1_(other.size1()), size2_(other.size2()), start1_(0), start2_(0), stride1_(1), stride2_(1),
   internal_size1_(viennacl::tools::align_to_multiple<size_type>(size1_, dense_padding_size)),
   internal_size2_(viennacl::tools::align_to_multiple<size_type>(size2_, dense_padding_size)),
@@ -256,6 +275,24 @@ matrix_base<NumericT, SizeT, DistanceT> & matrix_base<NumericT, SizeT, DistanceT
 
   viennacl::linalg::am(*this,
                        other, cpu_value_type(1.0), 1, false, false);
+  return *this;
+}
+
+// Conversion assignment
+template<class NumericT, typename SizeT, typename DistanceT>
+template<typename OtherNumericT>
+matrix_base<NumericT, SizeT, DistanceT> & matrix_base<NumericT, SizeT, DistanceT>::operator=(const matrix_base<OtherNumericT, SizeT, DistanceT> & other)
+{
+  if (internal_size() == 0)
+  {
+    if (other.internal_size() == 0)
+      return *this;
+    if (!row_major_fixed_)
+      row_major_ = other.row_major();
+    resize(other.size1(), other.size2(), false);
+  }
+
+  viennacl::linalg::convert(*this, other);
   return *this;
 }
 
@@ -1040,8 +1077,8 @@ namespace detail
 * @param cpu_matrix   A dense MTL matrix. cpu_matrix(i, j) returns the element in the i-th row and j-th columns (both starting with zero)
 * @param vcl_matrix   A dense ViennaCL matrix
 */
-template<typename NumericT, typename F, unsigned int AlignmentV>
-void copy(Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic> const & cpu_matrix,
+template<typename NumericT, int EigenOptions, typename F, unsigned int AlignmentV>
+void copy(Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, EigenOptions> const & cpu_matrix,
           viennacl::matrix<NumericT, F, AlignmentV> & vcl_matrix)
 {
   detail::copy_from_eigen_matrix(cpu_matrix, vcl_matrix);
@@ -1052,8 +1089,8 @@ void copy(Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic> const & cpu_ma
 * @param cpu_matrix   A dense MTL matrix. cpu_matrix(i, j) returns the element in the i-th row and j-th columns (both starting with zero)
 * @param vcl_matrix   A dense ViennaCL matrix
 */
-template<typename NumericT, int EigenMatTypeV, typename EigenStrideT, typename F, unsigned int AlignmentV>
-void copy(Eigen::Map<Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic>, EigenMatTypeV, EigenStrideT> const & cpu_matrix,
+template<typename NumericT, int EigenOptions, int EigenMatTypeV, typename EigenStrideT, typename F, unsigned int AlignmentV>
+void copy(Eigen::Map<Eigen::Matrix<NumericT, Eigen::Dynamic, Eigen::Dynamic, EigenOptions>, EigenMatTypeV, EigenStrideT> const & cpu_matrix,
           viennacl::matrix<NumericT, F, AlignmentV> & vcl_matrix)
 {
   detail::copy_from_eigen_matrix(cpu_matrix, vcl_matrix);
@@ -2825,6 +2862,46 @@ namespace detail
     }
   };
 
+  //////////////////// row_sum(), column_sum() operations ////////////////////////////////////////
+
+  template<typename T>
+  struct op_executor<vector_base<T>, op_assign, vector_expression<const matrix_base<T>, const matrix_base<T>, op_row_sum> >
+  {
+    static void apply(vector_base<T> & lhs, vector_expression<const matrix_base<T>, const matrix_base<T>, op_row_sum> const & proxy)
+    {
+      viennacl::linalg::row_sum_impl(proxy.lhs(), lhs);
+    }
+  };
+
+  template<typename T, typename LHS, typename RHS, typename OP>
+  struct op_executor<vector_base<T>, op_assign, vector_expression<const matrix_expression<LHS, RHS, OP>, const matrix_expression<LHS, RHS, OP>, op_row_sum> >
+  {
+    static void apply(vector_base<T> & lhs, vector_expression<const matrix_expression<LHS, RHS, OP>, const matrix_expression<LHS, RHS, OP>, op_row_sum> const & proxy)
+    {
+      matrix_base<T> tmp(proxy.lhs());
+      viennacl::linalg::row_sum_impl(tmp, lhs);
+    }
+  };
+
+  template<typename T>
+  struct op_executor<vector_base<T>, op_assign, vector_expression<const matrix_base<T>, const matrix_base<T>, op_col_sum> >
+  {
+    static void apply(vector_base<T> & lhs, vector_expression<const matrix_base<T>, const matrix_base<T>, op_col_sum> const & proxy)
+    {
+      viennacl::linalg::column_sum_impl(proxy.lhs(), lhs);
+    }
+  };
+
+
+  template<typename T, typename LHS, typename RHS, typename OP>
+  struct op_executor<vector_base<T>, op_assign, vector_expression<const matrix_expression<LHS, RHS, OP>, const matrix_expression<LHS, RHS, OP>, op_col_sum> >
+  {
+    static void apply(vector_base<T> & lhs, vector_expression<const matrix_expression<LHS, RHS, OP>, const matrix_expression<LHS, RHS, OP>, op_col_sum> const & proxy)
+    {
+      matrix_base<T> tmp(proxy.lhs());
+      viennacl::linalg::column_sum_impl(tmp, lhs);
+    }
+  };
 
   //////////////////// Element-wise operations ////////////////////////////////////////
 

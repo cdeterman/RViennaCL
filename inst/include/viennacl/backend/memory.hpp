@@ -2,7 +2,7 @@
 #define VIENNACL_BACKEND_MEMORY_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -385,7 +385,7 @@ namespace backend
 
     if (size_dst != size_src)  // OpenCL data element size not the same as host data element size
     {
-      throw "Heterogeneous data element sizes not yet supported!";
+      throw memory_exception("Heterogeneous data element sizes not yet supported!");
     }
     else //no data conversion required
     {
@@ -406,7 +406,7 @@ namespace backend
 #endif
         case MAIN_MEMORY:
         default:
-          throw "Invalid destination domain";
+          throw memory_exception("Invalid destination domain");
         }
       }
 #ifdef VIENNACL_WITH_OPENCL
@@ -428,7 +428,7 @@ namespace backend
           break;
 #endif
         default:
-          throw "Invalid destination domain";
+          throw memory_exception("Invalid destination domain");
         }
       }
 #endif
@@ -452,7 +452,7 @@ namespace backend
           break;
 #endif
         default:
-          throw "Unsupported source memory domain";
+          throw memory_exception("Unsupported source memory domain");
         }
       }
 #endif
@@ -512,7 +512,7 @@ namespace backend
 #endif
 
       default:
-        throw "unsupported memory domain";
+        throw memory_exception("unsupported memory domain");
       }
 
       //
@@ -544,7 +544,7 @@ namespace backend
           break;
 
         default:
-          throw "unsupported destination memory domain";
+          throw memory_exception("unsupported destination memory domain");
         }
         break;
 
@@ -572,7 +572,7 @@ namespace backend
           break;
 
         default:
-          throw "unsupported destination memory domain";
+          throw memory_exception("unsupported destination memory domain");
         }
         break;
 
@@ -600,12 +600,12 @@ namespace backend
           break;
 
         default:
-          throw "unsupported destination memory domain";
+          throw memory_exception("unsupported destination memory domain");
         }
         break;
 
       default:
-        throw "unsupported source memory domain";
+        throw memory_exception("unsupported source memory domain");
       }
 
     }

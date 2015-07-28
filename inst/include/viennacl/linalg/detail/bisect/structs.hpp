@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_DETAIL_BISECT_STRUCTS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -13,7 +13,7 @@
 
    Project Head:    Karl Rupp                   rupp@iue.tuwien.ac.at
 
-   (A list of authors and contributors can be found in the PDF manual)
+   (A list of authors and contributors can be found in the manual)
 
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
@@ -186,10 +186,10 @@ struct ResultDataLarge
     //! @param  matrix_size  size of the matrix
     ////////////////////////////////////////////////////////////////////////////////
     ResultDataLarge(const unsigned int mat_size) :
-      std_eigenvalues(mat_size), g_left_one(mat_size), g_right_one(mat_size), g_pos_one(mat_size),
-      g_left_mult(mat_size), g_right_mult(mat_size),g_left_count_mult(mat_size), g_right_count_mult(mat_size),
-      g_lambda_mult(mat_size), g_blocks_mult(mat_size), g_blocks_mult_sum(mat_size), g_pos_mult(mat_size),
-      g_num_one(0), g_num_blocks_mult(0)
+      std_eigenvalues(mat_size), g_num_one(0), g_num_blocks_mult(0),
+      g_left_one(mat_size), g_right_one(mat_size), g_pos_one(mat_size),
+      g_left_mult(mat_size), g_right_mult(mat_size), g_left_count_mult(mat_size), g_right_count_mult(mat_size),
+      g_blocks_mult(mat_size), g_blocks_mult_sum(mat_size), g_lambda_mult(mat_size), g_pos_mult(mat_size)
     {
     }
 
