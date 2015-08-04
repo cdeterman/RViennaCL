@@ -66,8 +66,12 @@ echo "Copying ViennaCL files from ${viennaclRoot} into inst/incl Dir (ie ${pkgin
 if [ dev ]; then
 	echo "using development version"
 	cp -r ${viennaclRoot}/viennacl-dev-master/viennacl/ ${pkgincl}
+  echo "copying CL files"
+  cp -r ${viennaclRoot}/viennacl-dev-master/CL/ ${pkgincl}
 else
 	cp -r ${viennaclRoot}/viennacl/ ${pkgincl}
+  echo "copying CL files"
+  cp -r ${viennaclRoot}/viennacl/CL/ ${pkgincl}
 fi
 
 ## Post processing and cleanup
