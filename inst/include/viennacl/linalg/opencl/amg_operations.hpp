@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_OPENCL_AMG_OPERATIONS_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -72,6 +72,7 @@ void amg_influence_advanced(compressed_matrix<NumericT> const & A,
                             viennacl::linalg::detail::amg::amg_level_context & amg_context,
                             viennacl::linalg::amg_tag & tag)
 {
+  (void)A; (void)amg_context; (void)tag;
   throw std::runtime_error("amg_influence_advanced() not implemented for OpenCL yet");
 }
 
@@ -128,6 +129,7 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
                                viennacl::linalg::detail::amg::amg_level_context & amg_context,
                                viennacl::linalg::amg_tag & tag)
 {
+  (void)tag;
   viennacl::ocl::context & ctx = const_cast<viennacl::ocl::context &>(viennacl::traits::opencl_handle(A).context());
   viennacl::linalg::opencl::kernels::amg<NumericT>::init(ctx);
 
@@ -413,11 +415,13 @@ void assign_to_dense(viennacl::compressed_matrix<NumericT, AlignmentV> const & A
 }
 
 /** @brief Jacobi Smoother (OpenCL version)
-* @param level       Coarse level to which smoother is applied to
+*
 * @param iterations  Number of smoother iterations
+* @param A           Operator matrix for the smoothing
 * @param x           The vector smoothing is applied to
-* @param x_backup    Vector holding the same values as x (but diffferent from x)
+* @param x_backup    (Different) Vector holding the same values as x
 * @param rhs_smooth  The right hand side of the equation for the smoother
+* @param weight      Damping factor. 0: No effect of smoother. 1: Undamped Jacobi iteration
 */
 template<typename NumericT>
 void smooth_jacobi(unsigned int iterations,

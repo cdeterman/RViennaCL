@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_CUDA_AMG_OPERATIONS_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -473,7 +473,7 @@ void amg_coarse_ag(compressed_matrix<NumericT> const & A,
   //
   // Stage 1: Build aggregates:
   //
-  if (tag.get_coarsening_method() == viennacl::linalg::AMG_COARSENING_METHOD_AGGREGATION)
+  if (tag.get_coarsening_method() == viennacl::linalg::AMG_COARSENING_METHOD_MIS2_AGGREGATION)
     amg_coarse_ag_stage1_mis2(A, amg_context, tag);
   else
     throw std::runtime_error("Only MIS2 coarsening implemented. Selected coarsening not available with CUDA backend!");
@@ -778,12 +778,14 @@ __global__ void compressed_matrix_smooth_jacobi_kernel(
 
 
 
-/** @brief Jacobi Smoother (OpenCL version)
-* @param level       Coarse level to which smoother is applied to
+/** @brief Damped Jacobi Smoother (CUDA version)
+*
 * @param iterations  Number of smoother iterations
+* @param A           Operator matrix for the smoothing
 * @param x           The vector smoothing is applied to
-* @param x_backup    Vector holding the same values as x (but diffferent from x)
+* @param x_backup    (Different) Vector holding the same values as x
 * @param rhs_smooth  The right hand side of the equation for the smoother
+* @param weight      Damping factor. 0: No effect of smoother. 1: Undamped Jacobi iteration
 */
 template<typename NumericT>
 void smooth_jacobi(unsigned int iterations,

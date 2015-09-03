@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_HOST_BASED_AMG_OPERATIONS_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -28,6 +28,7 @@
 
 #include <map>
 #include <set>
+#include <functional>
 #ifdef VIENNACL_WITH_OPENMP
 #include <omp.h>
 #endif
@@ -62,8 +63,9 @@ void amg_influence_trivial(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i=0; i<A.size1(); ++i)
+  for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
   {
+    vcl_size_t i = vcl_size_t(i2);
     influences_row_ptr[i] = A_row_buffer[i];
     influences_values_ptr[i] = A_row_buffer[i+1] - A_row_buffer[i];
   }
@@ -72,7 +74,7 @@ void amg_influence_trivial(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i=0; i<A.nnz(); ++i)
+  for (long i=0; i<long(A.nnz()); ++i)
     influences_id_ptr[i] = A_col_buffer[i];
 }
 
@@ -96,8 +98,9 @@ void amg_influence_advanced(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i=0; i<A.size1(); ++i)
+  for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
   {
+    vcl_size_t i = vcl_size_t(i2);
     unsigned int row_start = A_row_buffer[i];
     unsigned int row_stop  = A_row_buffer[i+1];
     NumericT diag = 0;
@@ -165,8 +168,9 @@ void amg_influence_advanced(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (std::size_t i=0; i<A.size1(); ++i)
+  for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
   {
+    unsigned int i = static_cast<unsigned int>(i2);
     unsigned int row_start = A_row_buffer[i];
     unsigned int row_stop  = A_row_buffer[i+1];
     NumericT diag = 0;
@@ -255,7 +259,7 @@ inline void enumerate_coarse_points(viennacl::linalg::detail::amg::amg_level_con
 /** @brief Helper struct for sequential classical one-pass coarsening */
 struct amg_id_influence
 {
-  amg_id_influence(std::size_t id2, std::size_t influences2) : id(id2), influences(influences2) {}
+  amg_id_influence(std::size_t id2, std::size_t influences2) : id(static_cast<unsigned int>(id2)), influences(static_cast<unsigned int>(influences2)) {}
 
   unsigned int  id;
   unsigned int  influences;
@@ -271,9 +275,9 @@ inline bool operator>(amg_id_influence const & a, amg_id_influence const & b)
 }
 
 /** @brief Classical (RS) one-pass coarsening. Single-Threaded! (VIENNACL_AMG_COARSE_CLASSIC_ONEPASS)
-* @param level         Course level identifier
-* @param A             Operator matrix on all levels
-* @param pointvector   Vector of points on all levels
+*
+* @param A             Operator matrix for the respective level
+* @param amg_context   AMG datastructure object for the grid hierarchy
 * @param tag           AMG preconditioner tag
 */
 template<typename NumericT>
@@ -354,9 +358,9 @@ void amg_coarse_classic_onepass(compressed_matrix<NumericT> const & A,
 
 
 /** @brief AG (aggregation based) coarsening, single-threaded version of stage 1
-* @param level         Course level identifier
-* @param A             Operator matrix on all levels
-* @param pointvector   Vector of points on all levels
+*
+* @param A             Operator matrix for the respective level
+* @param amg_context   AMG datastructure object for the grid hierarchy
 * @param tag           AMG preconditioner tag
 */
 template<typename NumericT>
@@ -364,6 +368,7 @@ void amg_coarse_ag_stage1_sequential(compressed_matrix<NumericT> const & A,
                                      viennacl::linalg::detail::amg::amg_level_context & amg_context,
                                      viennacl::linalg::amg_tag & tag)
 {
+  (void)tag;
   unsigned int *point_types_ptr       = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(amg_context.point_types_.handle());
   unsigned int *influences_row_ptr    = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(amg_context.influence_jumper_.handle());
   unsigned int *influences_id_ptr     = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(amg_context.influence_ids_.handle());
@@ -403,10 +408,10 @@ void amg_coarse_ag_stage1_sequential(compressed_matrix<NumericT> const & A,
 
 
 
-/** @brief AG (aggregation based) coarsening, single-threaded version of stage 1
-* @param level         Course level identifier
-* @param A             Operator matrix on all levels
-* @param pointvector   Vector of points on all levels
+/** @brief AG (aggregation based) coarsening, multi-threaded version of stage 1 using parallel maximum independent sets
+*
+* @param A             Operator matrix for the respective level
+* @param amg_context   AMG datastructure object for the grid hierarchy
 * @param tag           AMG preconditioner tag
 */
 template<typename NumericT>
@@ -414,6 +419,7 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
                                viennacl::linalg::detail::amg::amg_level_context & amg_context,
                                viennacl::linalg::amg_tag & tag)
 {
+  (void)tag;
   unsigned int  *point_types_ptr       = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(amg_context.point_types_.handle());
   unsigned int *influences_row_ptr    = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(amg_context.influence_jumper_.handle());
   unsigned int *influences_id_ptr     = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(amg_context.influence_ids_.handle());
@@ -456,8 +462,9 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-    for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+    for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
     {
+      unsigned int i = static_cast<unsigned int>(i2);
       switch (point_types_ptr[i])
       {
       case viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED: work_state_ptr[i] = 1; break;
@@ -481,8 +488,9 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
       #pragma omp parallel for
 #endif
-      for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+      for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
       {
+        unsigned int i = static_cast<unsigned int>(i2);
         // load
         unsigned int state  = work_state_ptr[i];
         unsigned int random = work_random_ptr[i];
@@ -531,8 +539,9 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
       #pragma omp parallel for
 #endif
-      for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+      for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
       {
+        unsigned int i = static_cast<unsigned int>(i2);
         work_state_ptr[i]  = work_state2_ptr[i];
         work_random_ptr[i] = work_random2_ptr[i];
         work_index_ptr[i]  = work_index2_ptr[i];
@@ -547,8 +556,9 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
     #pragma omp parallel for
 #endif
-    for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+    for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
     {
+      unsigned int i = static_cast<unsigned int>(i2);
       unsigned int max_state  = work_state_ptr[i];
       unsigned int max_index  = work_index_ptr[i];
 
@@ -574,21 +584,20 @@ void amg_coarse_ag_stage1_mis2(compressed_matrix<NumericT> const & A,
 
   // consistency with sequential MIS: reset state for non-coarse points, so that coarse indices are correctly picked up later
 #ifdef VIENNACL_WITH_OPENMP
-    #pragma omp parallel for
+  #pragma omp parallel for
 #endif
-    for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
-    {
-      if (point_types_ptr[i] != viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE)
-        point_types_ptr[i] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED;
-    }
+  for (long i=0; i<static_cast<long>(A.size1()); ++i)
+    if (point_types_ptr[i] != viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE)
+      point_types_ptr[i] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED;
+
 }
 
 
 
 /** @brief AG (aggregation based) coarsening. Partially single-threaded version (VIENNACL_AMG_COARSE_AG)
-* @param level         Course level identifier
-* @param A             Operator matrix on all levels
-* @param pointvector   Vector of points on all levels
+*
+* @param A             Operator matrix for the respective level
+* @param amg_context   AMG datastructure object for the grid hierarchy
 * @param tag           AMG preconditioner tag
 */
 template<typename NumericT>
@@ -617,8 +626,9 @@ void amg_coarse_ag(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+  for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
   {
+    unsigned int i = static_cast<unsigned int>(i2);
     if (point_types_ptr[i] == viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE)
     {
       unsigned int coarse_index = coarse_id_ptr[i];
@@ -642,8 +652,9 @@ void amg_coarse_ag(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+  for (long i2=0; i2<static_cast<long>(A.size1()); ++i2)
   {
+    unsigned int i = static_cast<unsigned int>(i2);
     if (point_types_ptr[i] == viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED)
     {
       unsigned int j_stop = influences_row_ptr[i + 1];
@@ -667,7 +678,7 @@ void amg_coarse_ag(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (unsigned int i = 0; i<static_cast<unsigned int>(A.size1()); ++i)
+  for (long i=0; i<static_cast<long>(A.size1()); ++i)
     if (point_types_ptr[i] == viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED)
       point_types_ptr[i] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_FINE;
 
@@ -676,15 +687,14 @@ void amg_coarse_ag(compressed_matrix<NumericT> const & A,
 
 
 
-/** @brief Calls the right coarsening procedure
-* @param level        Coarse level identifier
-* @param A            Operator matrix on all levels
-* @param pointvector  Vector of points on all levels
-* @param slicing      Partitioning of the system matrix to different processors (only used in RS0 and RS3)
-* @param tag          AMG preconditioner tag
+/** @brief Entry point and dispatcher for coarsening procedures
+*
+* @param A             Operator matrix for the respective level
+* @param amg_context   AMG datastructure object for the grid hierarchy
+* @param tag           AMG preconditioner tag
 */
-template<typename InternalT1>
-void amg_coarse(InternalT1 & A,
+template<typename MatrixT>
+void amg_coarse(MatrixT & A,
                 viennacl::linalg::detail::amg::amg_level_context & amg_context,
                 viennacl::linalg::amg_tag & tag)
 {
@@ -693,7 +703,7 @@ void amg_coarse(InternalT1 & A,
   case viennacl::linalg::AMG_COARSENING_METHOD_ONEPASS: amg_coarse_classic_onepass(A, amg_context, tag); break;
   case viennacl::linalg::AMG_COARSENING_METHOD_AGGREGATION:
   case viennacl::linalg::AMG_COARSENING_METHOD_MIS2_AGGREGATION: amg_coarse_ag(A, amg_context, tag); break;
-  default: throw std::runtime_error("not implemented yet");
+  //default: throw std::runtime_error("not implemented yet");
   }
 }
 
@@ -735,8 +745,9 @@ void amg_interpol_direct(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (unsigned int row = 0; row<A.size1(); ++row)
+  for (long row2=0; row2<static_cast<long>(A.size1()); ++row2)
   {
+    unsigned int row = static_cast<unsigned int>(row2);
     std::map<unsigned int, NumericT> & P_setup_row = P_setup[row];
     //std::cout << "Row " << row << ": " << std::endl;
     if (point_types_ptr[row] == viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE)
@@ -845,13 +856,14 @@ void amg_interpol_ag(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (unsigned int row = 0; row<A.size1(); ++row)
+  for (long row2 = 0; row2 < long(A.size1()); ++row2)
   {
+    unsigned int row = static_cast<unsigned int>(row2);
     P_elements[row]   = NumericT(1);
     P_row_buffer[row] = row;
     P_col_buffer[row] = coarse_id_ptr[row];
   }
-  P_row_buffer[A.size1()] = A.size1(); // don't forget finalizer
+  P_row_buffer[A.size1()] = static_cast<unsigned int>(A.size1()); // don't forget finalizer
 
   P.generate_row_block_information();
 }
@@ -890,8 +902,9 @@ void amg_interpol_sa(compressed_matrix<NumericT> const & A,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-  for (unsigned int row = 0; row<A.size1(); ++row)
+  for (long row2=0; row2<static_cast<long>(A.size1()); ++row2)
   {
+    unsigned int row = static_cast<unsigned int>(row2);
     unsigned int row_begin = A_row_buffer[row];
     unsigned int row_end   = A_row_buffer[row+1];
 
@@ -920,7 +933,7 @@ void amg_interpol_sa(compressed_matrix<NumericT> const & A,
         Jacobi_elements[j] = - NumericT(tag.get_jacobi_weight()) * A_elements[j] / diag;
     }
   }
-  Jacobi_row_buffer[A.size1()] = Jacobi.nnz(); // don't forget finalizer
+  Jacobi_row_buffer[A.size1()] = static_cast<unsigned int>(Jacobi.nnz()); // don't forget finalizer
 
   P = viennacl::linalg::prod(Jacobi, P_tentative);
 
@@ -1013,7 +1026,7 @@ void amg_transpose(compressed_matrix<NumericT> const & A,
     {
       unsigned int col_in_A = A_col_buffer[nnz_index];
       unsigned int B_nnz_index = B_row_buffer[col_in_A] + B_row_offsets[col_in_A];
-      B_col_buffer[B_nnz_index] = row;
+      B_col_buffer[B_nnz_index] = static_cast<unsigned int>(row);
       B_elements[B_nnz_index] = A_elements[nnz_index];
       ++B_row_offsets[col_in_A];
       //B_temp.at(A_col_buffer[nnz_index])[row] = A_elements[nnz_index];
@@ -1043,12 +1056,20 @@ void assign_to_dense(viennacl::compressed_matrix<NumericT, AlignmentV> const & A
     unsigned int row_stop  = A_row_buffer[row+1];
 
     for (unsigned int nnz_index = A_row_buffer[row]; nnz_index < row_stop; ++nnz_index)
-      B_elements[row * B.internal_size2() + A_col_buffer[nnz_index]] = A_elements[nnz_index];
+      B_elements[static_cast<unsigned int>(row) * static_cast<unsigned int>(B.internal_size2()) + A_col_buffer[nnz_index]] = A_elements[nnz_index];
   }
 
 }
 
-
+/** @brief Damped Jacobi Smoother (CUDA version)
+*
+* @param iterations  Number of smoother iterations
+* @param A           Operator matrix for the smoothing
+* @param x           The vector smoothing is applied to
+* @param x_backup    (Different) Vector holding the same values as x
+* @param rhs_smooth  The right hand side of the equation for the smoother
+* @param weight      Damping factor. 0: No effect of smoother. 1: Undamped Jacobi iteration
+*/
 template<typename NumericT>
 void smooth_jacobi(unsigned int iterations,
                    compressed_matrix<NumericT> const & A,
@@ -1073,8 +1094,9 @@ void smooth_jacobi(unsigned int iterations,
     #ifdef VIENNACL_WITH_OPENMP
     #pragma omp parallel for
     #endif
-    for (unsigned int row=0; row < static_cast<unsigned int>(A.size1()); ++row)
+    for (long row2 = 0; row2 < static_cast<long>(A.size1()); ++row2)
     {
+      unsigned int row = static_cast<unsigned int>(row2);
       unsigned int col_end   = A_row_buffer[row+1];
 
       NumericT sum  = NumericT(0);

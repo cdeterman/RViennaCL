@@ -10,10 +10,10 @@
 ## -- standard git checkout
 pkgdir="${HOME}/RViennaCL"
 ## -- current ViennaCL version, placed eg in ${pkgdir}/local/
-viennacltargz="ViennaCL-1.6.7.tar.gz"
-date="2015-07-27"
+viennacltargz="ViennaCL-1.7.0.tar.gz"
+date="2015-09-03"
 ## -- state if development version from github
-dev=TRUE
+dev=false
 
 ## Internal constants/variables
 ## local directory
@@ -63,15 +63,16 @@ echo "Unpacking ${viennacltargz} into LocalDIR (ie ${localdir})."
  (cd ${localdir} && mkdir ${viennaclVer} && tar xzf ${viennaclSources} -C ${viennaclVer})
 
 echo "Copying ViennaCL files from ${viennaclRoot} into inst/incl Dir (ie ${pkgincl})"
-if [ dev ]; then
+if [ "$dev" = true ]; then
 	echo "using development version"
 	cp -r ${viennaclRoot}/viennacl-dev-master/viennacl/ ${pkgincl}
-  echo "copying CL files"
-  cp -r ${viennaclRoot}/viennacl-dev-master/CL/ ${pkgincl}
+  #echo "copying CL files"
+  #cp -r ${viennaclRoot}/viennacl-dev-master/CL/ ${pkgincl}
 else
-	cp -r ${viennaclRoot}/viennacl/ ${pkgincl}
-  echo "copying CL files"
-  cp -r ${viennaclRoot}/viennacl/CL/ ${pkgincl}
+  echo "using released version"
+	cp -r ${viennaclRoot}/${viennaclVer}/viennacl/ ${pkgincl}
+  #echo "copying CL files"
+  #cp -r ${viennaclRoot}/${viennaclVer}/viennacl/CL/ ${pkgincl}
 fi
 
 ## Post processing and cleanup

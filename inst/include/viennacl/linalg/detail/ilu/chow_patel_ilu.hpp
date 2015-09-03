@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_DETAIL_CHOW_PATEL_ILU_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2014, Institute for Microelectronics,
+   Copyright (c) 2010-2015, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -70,7 +70,7 @@ namespace detail
 {
   /** @brief Implementation of the parallel ICC0 factorization, Algorithm 3 in Chow-Patel paper.
    *
-   *  Rather than dealing with a column-major upper triangular matrix U, we use the lower-triangular matrix L such that A \approx LL^T.
+   *  Rather than dealing with a column-major upper triangular matrix U, we use the lower-triangular matrix L such that A is approximately given by LL^T.
    *  The advantage is that L is readily available in row-major format.
    */
   template<typename NumericT>

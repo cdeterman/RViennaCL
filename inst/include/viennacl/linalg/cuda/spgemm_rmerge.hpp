@@ -322,9 +322,10 @@ __global__ void compressed_matrix_gemm_stage_3(
         {
           C_col_indices[index_in_C + id_in_warp] = index_buffer;
           C_elements[index_in_C + id_in_warp]    = value_buffer;
-          buffer_size = 0;
-          index_in_C += SubWarpSizeV;
         }
+
+        index_in_C += (buffer_size == SubWarpSizeV) ? SubWarpSizeV : 0;
+        buffer_size = (buffer_size == SubWarpSizeV) ?           0  : buffer_size;
       }
 
       // write remaining entries in register buffer to C:
@@ -434,13 +435,14 @@ __global__ void compressed_matrix_gemm_G1(
 
 
 
-/** @brief Carries out matrix-vector multiplication with a compressed_matrix
+/** @brief Carries out sparse_matrix-sparse_matrix multiplication for CSR matrices
 *
-* Implementation of the convenience expression result = prod(mat, vec);
+* Implementation of the convenience expression C = prod(A, B);
+* Based on computing C(i, :) = A(i, :) * B via merging the respective rows of B
 *
-* @param mat    The matrix
-* @param vec    The vector
-* @param result The result vector
+* @param A     Left factor
+* @param B     Right factor
+* @param C     Result matrix
 */
 template<class NumericT, unsigned int AlignmentV>
 void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
