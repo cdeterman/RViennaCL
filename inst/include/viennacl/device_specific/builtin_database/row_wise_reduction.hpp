@@ -18,31 +18,31 @@
    License:         MIT (X11), see file LICENSE in the base directory
 ============================================================================= */
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/northern_islands/barts.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/ni/barts.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/fermi/tesla_c2050.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/f/tesla_c2050.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/fermi/geforce_gtx_470.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/f/ge_gtx_470.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/maxwell/geforce_gtx_750_ti.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/m/ge_gtx_750_ti.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/northern_islands/scrapper.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/ni/scrapper.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/tesla/geforce_gtx_260.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/tesla/ge_gtx_260.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/southern_islands/tahiti.hpp"
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/northern_islands/devastator.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/si/tahiti.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/ni/devastator.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/kepler/tesla_k20m.hpp"
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/fermi/geforce_gtx_580.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/k/tesla_k20m.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/f/ge_gtx_580.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/volcanic_islands/hawaii.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/vi/hawaii.hpp"
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/evergreen/cypress.hpp"
-#include "viennacl/device_specific/builtin_database/devices/gpu/amd/evergreen/cedar.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/ev/cypress.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/amd/ev/cedar.hpp"
 
 
-#include "viennacl/device_specific/builtin_database/devices/gpu/nvidia/fermi/geforce_gt_540m.hpp"
+#include "viennacl/device_specific/builtin_database/devices/gpu/nv/f/ge_gt_540m.hpp"
 
 
 #include "viennacl/ocl/device_utils.hpp"
