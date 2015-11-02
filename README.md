@@ -1,5 +1,5 @@
 ## RViennaCL: ViennaCL Headers for R  
-[![Build Status](https://travis-ci.org/cdeterman/RViennaCL.svg)](https://travis-ci.org/cdeterman/RViennaCL) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/cdeterman/RViennaCL?branch=master)](https://ci.appveyor.com/project/cdeterman/RViennaCL)
+[![Build Status](https://travis-ci.org/cdeterman/RViennaCL.svg)](https://travis-ci.org/cdeterman/RViennaCL) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/cdeterman/RViennaCL?branch=master)](https://ci.appveyor.com/project/cdeterman/RViennaCL) [![Downloads](http://cranlogs.r-pkg.org/badges/RViennaCL?color=brightgreen)](http://www.r-pkg.org/pkg/RViennaCL)
 
 This package provides [R](http://www.r-project.org) with access to
 [ViennaCL](http://viennacl.sourceforge.net/) header files.  
