@@ -30,6 +30,7 @@
 #include "viennacl/scheduler/forwards.h"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

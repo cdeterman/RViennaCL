@@ -42,6 +42,7 @@
   #include "viennacl/linalg/cuda/iterative_operations.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

@@ -30,6 +30,7 @@
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/linalg/host_based/common.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

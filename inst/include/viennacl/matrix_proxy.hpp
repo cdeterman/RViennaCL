@@ -27,6 +27,7 @@
 #include "viennacl/slice.hpp"
 #include "viennacl/detail/matrix_def.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 
@@ -131,7 +132,7 @@ void copy(const CPUMatrixT & cpu_matrix,
       vcl_size_t start_offset = (gpu_matrix_range.start1() + i) * gpu_matrix_range.internal_size2() + gpu_matrix_range.start2();
       vcl_size_t num_entries = gpu_matrix_range.size2();
       viennacl::backend::memory_write(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-      //std::cout << "Strided copy worked!" << std::endl;
+      //Rcpp::Rcout << "Strided copy worked!" << std::endl;
     }
   }
   else
@@ -147,7 +148,7 @@ void copy(const CPUMatrixT & cpu_matrix,
     vcl_size_t start_offset = gpu_matrix_range.start1() * gpu_matrix_range.internal_size2();
     vcl_size_t num_entries = gpu_matrix_range.size1() * gpu_matrix_range.internal_size2();
     viennacl::backend::memory_write(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-    //std::cout << "Block copy worked!" << std::endl;
+    //Rcpp::Rcout << "Block copy worked!" << std::endl;
   }
 }
 
@@ -173,7 +174,7 @@ void copy(const CPUMatrixT & cpu_matrix,
       vcl_size_t start_offset = (gpu_matrix_range.start2() + j) * gpu_matrix_range.internal_size1() + gpu_matrix_range.start1();
       vcl_size_t num_entries = gpu_matrix_range.size1();
       viennacl::backend::memory_write(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-      //std::cout << "Strided copy worked!" << std::endl;
+      //Rcpp::Rcout << "Strided copy worked!" << std::endl;
     }
   }
   else
@@ -189,7 +190,7 @@ void copy(const CPUMatrixT & cpu_matrix,
     vcl_size_t start_offset = gpu_matrix_range.start2() * gpu_matrix_range.internal_size1();
     vcl_size_t num_entries = gpu_matrix_range.internal_size1() * gpu_matrix_range.size2();
     viennacl::backend::memory_write(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-    //std::cout << "Block copy worked!" << std::endl;
+    //Rcpp::Rcout << "Block copy worked!" << std::endl;
   }
 
 }
@@ -219,7 +220,7 @@ void copy(matrix_range<matrix<NumericT, row_major, 1> > const & gpu_matrix_range
       vcl_size_t start_offset = (gpu_matrix_range.start1() + i) * gpu_matrix_range.internal_size2() + gpu_matrix_range.start2();
       vcl_size_t num_entries = gpu_matrix_range.size2();
       viennacl::backend::memory_read(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-      //std::cout << "Strided copy worked!" << std::endl;
+      //Rcpp::Rcout << "Strided copy worked!" << std::endl;
 
       for (vcl_size_t j=0; j < gpu_matrix_range.size2(); ++j)
         cpu_matrix(i,j) = entries[j];
@@ -232,7 +233,7 @@ void copy(matrix_range<matrix<NumericT, row_major, 1> > const & gpu_matrix_range
 
     vcl_size_t start_offset = gpu_matrix_range.start1() * gpu_matrix_range.internal_size2();
     viennacl::backend::memory_read(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*entries.size(), &(entries[0]));
-    //std::cout << "Block copy worked!" << std::endl;
+    //Rcpp::Rcout << "Block copy worked!" << std::endl;
 
     for (vcl_size_t i=0; i < gpu_matrix_range.size1(); ++i)
       for (vcl_size_t j=0; j < gpu_matrix_range.size2(); ++j)
@@ -261,7 +262,7 @@ void copy(matrix_range<matrix<NumericT, column_major, 1> > const & gpu_matrix_ra
       vcl_size_t start_offset = (gpu_matrix_range.start2() + j) * gpu_matrix_range.internal_size1() + gpu_matrix_range.start1();
       vcl_size_t num_entries = gpu_matrix_range.size1();
       viennacl::backend::memory_read(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-      //std::cout << "Strided copy worked!" << std::endl;
+      //Rcpp::Rcout << "Strided copy worked!" << std::endl;
 
       for (vcl_size_t i=0; i < gpu_matrix_range.size1(); ++i)
         cpu_matrix(i,j) = entries[i];
@@ -276,7 +277,7 @@ void copy(matrix_range<matrix<NumericT, column_major, 1> > const & gpu_matrix_ra
     vcl_size_t start_offset = gpu_matrix_range.start2() * gpu_matrix_range.internal_size1();
     vcl_size_t num_entries = gpu_matrix_range.internal_size1() * gpu_matrix_range.size2();
     viennacl::backend::memory_read(gpu_matrix_range.handle(), sizeof(NumericT)*start_offset, sizeof(NumericT)*num_entries, &(entries[0]));
-    //std::cout << "Block copy worked!" << std::endl;
+    //Rcpp::Rcout << "Block copy worked!" << std::endl;
 
     for (vcl_size_t i=0; i < gpu_matrix_range.size1(); ++i)
       for (vcl_size_t j=0; j < gpu_matrix_range.size2(); ++j)

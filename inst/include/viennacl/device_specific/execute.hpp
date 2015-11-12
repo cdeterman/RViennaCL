@@ -36,6 +36,7 @@
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/tools/timer.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

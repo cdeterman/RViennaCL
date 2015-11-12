@@ -36,6 +36,7 @@
 
 #include "viennacl/backend/mem_handle.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

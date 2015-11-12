@@ -33,6 +33,7 @@
 // additional kernel
 #include "viennacl/linalg/cuda/bisect_util.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

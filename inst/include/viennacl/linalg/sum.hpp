@@ -28,6 +28,7 @@
 #include "viennacl/meta/tag_of.hpp"
 #include "viennacl/meta/result_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

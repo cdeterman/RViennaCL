@@ -41,6 +41,7 @@
     @brief Common routines used for the QR method and SVD. Experimental.
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

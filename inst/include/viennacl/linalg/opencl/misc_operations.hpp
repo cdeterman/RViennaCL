@@ -32,6 +32,7 @@
 #include "viennacl/linalg/opencl/kernels/ilu.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

@@ -28,6 +28,7 @@
 #include "viennacl/vector.hpp"
 #include "viennacl/tools/entry_proxy.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

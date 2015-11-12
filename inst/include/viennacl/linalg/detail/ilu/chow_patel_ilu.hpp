@@ -34,6 +34,7 @@
 #include "viennacl/linalg/prod.hpp"
 #include "viennacl/backend/memory.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

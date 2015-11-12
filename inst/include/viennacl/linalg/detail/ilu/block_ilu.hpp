@@ -32,6 +32,7 @@
 
 #include <map>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -153,9 +154,9 @@ public:
     }
 
     //initialize preconditioner:
-    //std::cout << "Start CPU precond" << std::endl;
+    //Rcpp::Rcout << "Start CPU precond" << std::endl;
     init(mat);
-    //std::cout << "End CPU precond" << std::endl;
+    //Rcpp::Rcout << "End CPU precond" << std::endl;
   }
 
   block_ilu_precond(MatrixT const & mat,
@@ -164,9 +165,9 @@ public:
                    ) : tag_(tag), block_indices_(block_boundaries), L_blocks(block_boundaries.size()), U_blocks(block_boundaries.size())
   {
     //initialize preconditioner:
-    //std::cout << "Start CPU precond" << std::endl;
+    //Rcpp::Rcout << "Start CPU precond" << std::endl;
     init(mat);
-    //std::cout << "End CPU precond" << std::endl;
+    //Rcpp::Rcout << "End CPU precond" << std::endl;
   }
 
 
@@ -309,9 +310,9 @@ public:
     }
 
     //initialize preconditioner:
-    //std::cout << "Start CPU precond" << std::endl;
+    //Rcpp::Rcout << "Start CPU precond" << std::endl;
     init(mat);
-    //std::cout << "End CPU precond" << std::endl;
+    //Rcpp::Rcout << "End CPU precond" << std::endl;
   }
 
   block_ilu_precond(MatrixType const & mat,
@@ -327,9 +328,9 @@ public:
                        U_blocks_(block_boundaries.size())
   {
     //initialize preconditioner:
-    //std::cout << "Start CPU precond" << std::endl;
+    //Rcpp::Rcout << "Start CPU precond" << std::endl;
     init(mat);
-    //std::cout << "End CPU precond" << std::endl;
+    //Rcpp::Rcout << "End CPU precond" << std::endl;
   }
 
 

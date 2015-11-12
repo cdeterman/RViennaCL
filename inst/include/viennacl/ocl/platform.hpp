@@ -32,6 +32,7 @@
 #include "viennacl/ocl/forwards.h"
 #include "viennacl/ocl/device.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl
@@ -52,7 +53,7 @@ namespace ocl
       cl_uint num_platforms;
       cl_platform_id ids[42];   //no more than 42 platforms supported...
 #if defined(VIENNACL_DEBUG_ALL)
-      std::cout << "ViennaCL: Getting platform..." << std::endl;
+      Rcpp::Rcout << "ViennaCL: Getting platform..." << std::endl;
 #endif
       err = clGetPlatformIDs(42, ids, &num_platforms);
       VIENNACL_ERR_CHECK(err);
@@ -92,7 +93,7 @@ namespace ocl
     {
       cl_int err;
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_DEVICE)
-      std::cout << "ViennaCL: Querying devices available at current platform." << std::endl;
+      Rcpp::Rcout << "ViennaCL: Querying devices available at current platform." << std::endl;
 #endif
       cl_device_id device_ids[VIENNACL_OCL_MAX_DEVICE_NUM];
       cl_uint num_devices;
@@ -105,7 +106,7 @@ namespace ocl
 
       VIENNACL_ERR_CHECK(err);
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_DEVICE)
-      std::cout << "ViennaCL: Found " << num_devices << " devices." << std::endl;
+      Rcpp::Rcout << "ViennaCL: Found " << num_devices << " devices." << std::endl;
 #endif
 
       assert(num_devices > 0 && bool("Error in viennacl::ocl::platform::devices(): No OpenCL devices available!"));
@@ -128,7 +129,7 @@ namespace ocl
     cl_uint num_platforms;
     cl_platform_id ids[42];   //no more than 42 platforms supported...
 #if defined(VIENNACL_DEBUG_ALL)
-    std::cout << "ViennaCL: Getting platform..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting platform..." << std::endl;
 #endif
     err = clGetPlatformIDs(42, ids, &num_platforms);
     VIENNACL_ERR_CHECK(err);

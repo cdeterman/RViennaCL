@@ -42,6 +42,7 @@
 
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg

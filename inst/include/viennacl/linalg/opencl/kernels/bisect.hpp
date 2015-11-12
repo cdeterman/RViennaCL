@@ -38,6 +38,7 @@
 
 // declaration, forward
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -2630,7 +2631,7 @@ namespace kernels
 
         std::string prog_name = program_name();
         #ifdef VIENNACL_BUILD_INFO
-        std::cout << "Creating program " << prog_name << std::endl;
+        Rcpp::Rcout << "Creating program " << prog_name << std::endl;
         #endif
         ctx.add_program(source, prog_name);
         init_done[ctx.handle().get()] = true;

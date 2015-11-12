@@ -27,6 +27,7 @@
 #include "viennacl/ocl/handle.hpp"
 #include "viennacl/ocl/backend.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace backend
@@ -54,7 +55,7 @@ namespace opencl
  */
 inline cl_mem memory_create(viennacl::ocl::context const & ctx, vcl_size_t size_in_bytes, const void * host_ptr = NULL)
 {
-  //std::cout << "Creating buffer (" << size_in_bytes << " bytes) host buffer " << host_ptr << " in context " << &ctx << std::endl;
+  //Rcpp::Rcout << "Creating buffer (" << size_in_bytes << " bytes) host buffer " << host_ptr << " in context " << &ctx << std::endl;
   return ctx.create_memory_without_smart_handle(CL_MEM_READ_WRITE, static_cast<unsigned int>(size_in_bytes), const_cast<void *>(host_ptr));
 }
 
@@ -104,7 +105,7 @@ inline void memory_write(viennacl::ocl::handle<cl_mem> & dst_buffer,
   viennacl::ocl::context & memory_context = const_cast<viennacl::ocl::context &>(dst_buffer.context());
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_DEVICE)
-  std::cout << "Writing data (" << bytes_to_copy << " bytes, offset " << dst_offset << ") to OpenCL buffer " << dst_buffer.get() << " with queue " << memory_context.get_queue().handle().get() << " from " << ptr << std::endl;
+  Rcpp::Rcout << "Writing data (" << bytes_to_copy << " bytes, offset " << dst_offset << ") to OpenCL buffer " << dst_buffer.get() << " with queue " << memory_context.get_queue().handle().get() << " from " << ptr << std::endl;
 #endif
 
   cl_int err = clEnqueueWriteBuffer(memory_context.get_queue().handle().get(),
@@ -132,7 +133,7 @@ inline void memory_read(viennacl::ocl::handle<cl_mem> const & src_buffer,
                         void * ptr,
                         bool async = false)
 {
-  //std::cout << "Reading data (" << bytes_to_copy << " bytes, offset " << src_offset << ") from OpenCL buffer " << src_buffer.get() << " to " << ptr << std::endl;
+  //Rcpp::Rcout << "Reading data (" << bytes_to_copy << " bytes, offset " << src_offset << ") from OpenCL buffer " << src_buffer.get() << " to " << ptr << std::endl;
   viennacl::ocl::context & memory_context = const_cast<viennacl::ocl::context &>(src_buffer.context());
   cl_int err =  clEnqueueReadBuffer(memory_context.get_queue().handle().get(),
                                     src_buffer.get(),

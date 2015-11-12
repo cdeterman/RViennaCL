@@ -29,6 +29,7 @@
 
 #include "viennacl/meta/result_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace traits

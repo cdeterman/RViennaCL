@@ -30,6 +30,7 @@
 
 #include "viennacl/fft.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief A Circulant matrix class

@@ -35,6 +35,7 @@
 #endif
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

@@ -33,6 +33,7 @@
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/tools/entry_proxy.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace detail
@@ -115,7 +116,7 @@ template<typename CPUMatrixT, typename NumericT>
 void copy(const CPUMatrixT & cpu_matrix,
           compressed_compressed_matrix<NumericT> & gpu_matrix )
 {
-  //std::cout << "copy for (" << cpu_matrix.size1() << ", " << cpu_matrix.size2() << ", " << cpu_matrix.nnz() << ")" << std::endl;
+  //Rcpp::Rcout << "copy for (" << cpu_matrix.size1() << ", " << cpu_matrix.size2() << ", " << cpu_matrix.nnz() << ")" << std::endl;
 
   if ( cpu_matrix.size1() > 0 && cpu_matrix.size2() > 0 )
   {
@@ -210,7 +211,7 @@ void copy(const compressed_compressed_matrix<NumericT> & gpu_matrix,
     viennacl::backend::typesafe_host_array<unsigned int> col_buffer(gpu_matrix.handle2(), gpu_matrix.nnz());
     std::vector<NumericT> elements(gpu_matrix.nnz());
 
-    //std::cout << "GPU->CPU, nonzeros: " << gpu_matrix.nnz() << std::endl;
+    //Rcpp::Rcout << "GPU->CPU, nonzeros: " << gpu_matrix.nnz() << std::endl;
 
     viennacl::backend::memory_read(gpu_matrix.handle1(), 0, row_buffer.raw_size(), row_buffer.get());
     viennacl::backend::memory_read(gpu_matrix.handle3(), 0, row_indices.raw_size(), row_indices.get());
@@ -225,7 +226,7 @@ void copy(const compressed_compressed_matrix<NumericT> & gpu_matrix,
       {
         if (col_buffer[data_index] >= gpu_matrix.size2())
         {
-          std::cerr << "ViennaCL encountered invalid data at colbuffer[" << data_index << "]: " << col_buffer[data_index] << std::endl;
+          Rcpp::Rcerr << "ViennaCL encountered invalid data at colbuffer[" << data_index << "]: " << col_buffer[data_index] << std::endl;
           return;
         }
 
@@ -426,7 +427,7 @@ public:
     assert( (cols > 0)         && bool("Error in compressed_compressed_matrix::set(): Number of columns must be larger than zero!"));
     assert( (nonzero_rows > 0) && bool("Error in compressed_compressed_matrix::set(): Number of nonzero rows must be larger than zero!"));
     assert( (nonzeros > 0)     && bool("Error in compressed_compressed_matrix::set(): Number of nonzeros must be larger than zero!"));
-    //std::cout << "Setting memory: " << cols + 1 << ", " << nonzeros << std::endl;
+    //Rcpp::Rcout << "Setting memory: " << cols + 1 << ", " << nonzeros << std::endl;
 
     viennacl::backend::memory_create(row_buffer_,  viennacl::backend::typesafe_host_array<unsigned int>(row_buffer_).element_size() * (nonzero_rows + 1),  viennacl::traits::context(row_buffer_),  row_jumper);
     viennacl::backend::memory_create(row_indices_, viennacl::backend::typesafe_host_array<unsigned int>(row_indices_).element_size() * nonzero_rows, viennacl::traits::context(row_indices_), row_indices);

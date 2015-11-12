@@ -47,6 +47,7 @@
 #include "viennacl/linalg/detail/spai/block_matrix.hpp"
 #include "viennacl/linalg/detail/spai/block_vector.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

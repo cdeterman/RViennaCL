@@ -56,6 +56,7 @@
   " * ViennaCL version\n"\
   "Many thanks in advance!";\
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl
@@ -670,7 +671,7 @@ struct error_checker
     if (err != CL_SUCCESS)
     {
 #ifdef VIENNACL_DEBUG_ALL
-      std::cerr << "ViennaCL: Error " << err  << " in function " << func << " ( "<< file << ":" << line << " ) " << std::endl;
+      Rcpp::Rcerr << "ViennaCL: Error " << err  << " in function " << func << " ( "<< file << ":" << line << " ) " << std::endl;
 #endif
       raise_exception(err);
     }

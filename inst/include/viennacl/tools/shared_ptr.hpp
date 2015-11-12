@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <algorithm>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace tools

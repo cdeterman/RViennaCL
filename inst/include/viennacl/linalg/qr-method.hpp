@@ -32,6 +32,7 @@
     @brief Implementation of the QR method for eigenvalue computations. Experimental.
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -528,7 +529,7 @@ void update_float_QR_column_gpu(matrix_base<SCALARTYPE> & A,
                 update_float_QR_column<SCALARTYPE>(H, buf, m, n, n, true);
                 update_float_QR_column_gpu(V, buf, buf_vcl, m, n, nn, false);
 
-                // std::cout << timer.get() << "\n";
+                // Rcpp::Rcout << timer.get() << "\n";
             }
         }
 
@@ -735,7 +736,7 @@ void update_float_QR_column_gpu(matrix_base<SCALARTYPE> & A,
         assert(A.size1() == A.size2() && bool("Input matrix must be square for QR method!"));
     /*    if (!viennacl::is_row_major<F>::value && !is_symmetric)
         {
-          std::cout << "qr_method for non-symmetric column-major matrices not implemented yet!" << std::endl;
+          Rcpp::Rcout << "qr_method for non-symmetric column-major matrices not implemented yet!" << std::endl;
           exit(EXIT_FAILURE);
         }
 

@@ -32,6 +32,7 @@
 
 #include "viennacl/linalg/hankel_matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief A Hankel matrix class

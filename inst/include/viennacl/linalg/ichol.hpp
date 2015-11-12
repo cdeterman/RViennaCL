@@ -33,6 +33,7 @@
 
 #include <map>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -60,7 +61,7 @@ void precondition(viennacl::compressed_matrix<NumericT> & A, ichol0_tag const & 
   unsigned int const * row_buffer = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(A.handle1());
   unsigned int const * col_buffer = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(A.handle2());
 
-  //std::cout << A.size1() << std::endl;
+  //Rcpp::Rcout << A.size1() << std::endl;
   for (vcl_size_t i=0; i<A.size1(); ++i)
   {
     unsigned int row_i_begin = row_buffer[i];
@@ -132,9 +133,9 @@ public:
   ichol0_precond(MatrixT const & mat, ichol0_tag const & tag) : tag_(tag), LLT(mat.size1(), mat.size2(), viennacl::context(viennacl::MAIN_MEMORY))
   {
       //initialize preconditioner:
-      //std::cout << "Start CPU precond" << std::endl;
+      //Rcpp::Rcout << "Start CPU precond" << std::endl;
       init(mat);
-      //std::cout << "End CPU precond" << std::endl;
+      //Rcpp::Rcout << "End CPU precond" << std::endl;
   }
 
   template<typename VectorT>
@@ -177,9 +178,9 @@ public:
   ichol0_precond(MatrixType const & mat, ichol0_tag const & tag) : tag_(tag), LLT(mat.size1(), mat.size2(), viennacl::traits::context(mat))
   {
     //initialize preconditioner:
-    //std::cout << "Start GPU precond" << std::endl;
+    //Rcpp::Rcout << "Start GPU precond" << std::endl;
     init(mat);
-    //std::cout << "End GPU precond" << std::endl;
+    //Rcpp::Rcout << "End GPU precond" << std::endl;
   }
 
   void apply(vector<NumericT> & vec) const

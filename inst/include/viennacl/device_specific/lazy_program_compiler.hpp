@@ -27,6 +27,7 @@
 
 #include "viennacl/ocl/context.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 
@@ -51,11 +52,11 @@ namespace device_specific
       if (!ctx_->has_program(name_))
       {
 #ifdef VIENNACL_BUILD_INFO
-          std::cerr << "Creating program " << program_name << std::endl;
+          Rcpp::Rcerr << "Creating program " << program_name << std::endl;
 #endif
           ctx_->add_program(src_, name_);
 #ifdef VIENNACL_BUILD_INFO
-          std::cerr << "Done creating program " << program_name << std::endl;
+          Rcpp::Rcerr << "Done creating program " << program_name << std::endl;
 #endif
       }
       return ctx_->get_program(name_);

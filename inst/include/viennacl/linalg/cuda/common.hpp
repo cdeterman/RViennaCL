@@ -29,6 +29,7 @@
 
 #define VIENNACL_CUDA_LAST_ERROR_CHECK(message)  detail::cuda_last_error_check (message, __FILE__, __LINE__)
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

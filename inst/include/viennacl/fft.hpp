@@ -32,6 +32,7 @@
 
 #include <stdexcept>
 /// @cond
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace detail
@@ -167,7 +168,7 @@ void fft(viennacl::matrix<NumericT, viennacl::row_major, AlignmentV>& input, //T
   // batch with cols
   if (viennacl::detail::fft::is_radix2(rows_num))
   {
-    //std::cout<<"output"<<output<<std::endl;
+    //Rcpp::Rcout<<"output"<<output<<std::endl;
 
     viennacl::linalg::radix2(output, rows_num, cols_int, cols_num, sign,
                              viennacl::linalg::host_based::detail::fft::FFT_DATA_ORDER::COL_MAJOR);
@@ -177,7 +178,7 @@ void fft(viennacl::matrix<NumericT, viennacl::row_major, AlignmentV>& input, //T
     viennacl::matrix<NumericT, viennacl::row_major, AlignmentV> tmp(output.size1(),
                                                                     output.size2());
     tmp = output;
-    //std::cout<<"tmp"<<tmp<<std::endl;
+    //Rcpp::Rcout<<"tmp"<<tmp<<std::endl;
     viennacl::linalg::direct(tmp, output, rows_num, cols_int, cols_num, sign,
                              viennacl::linalg::host_based::detail::fft::FFT_DATA_ORDER::COL_MAJOR);
   }

@@ -37,6 +37,7 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

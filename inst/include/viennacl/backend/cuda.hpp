@@ -37,6 +37,7 @@
 
 #define VIENNACL_CUDA_ERROR_CHECK(err)  detail::cuda_error_check (err, __FILE__, __LINE__)
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace backend
@@ -87,7 +88,7 @@ namespace detail
   {
     void operator()(U * p) const
     {
-      //std::cout << "Freeing handle " << reinterpret_cast<void *>(p) << std::endl;
+      //Rcpp::Rcout << "Freeing handle " << reinterpret_cast<void *>(p) << std::endl;
       cudaFree(p);
     }
   };
@@ -104,7 +105,7 @@ inline handle_type  memory_create(vcl_size_t size_in_bytes, const void * host_pt
 {
   void * dev_ptr = NULL;
   VIENNACL_CUDA_ERROR_CHECK( cudaMalloc(&dev_ptr, size_in_bytes) );
-  //std::cout << "Allocated new dev_ptr " << dev_ptr << " of size " <<  size_in_bytes << std::endl;
+  //Rcpp::Rcout << "Allocated new dev_ptr " << dev_ptr << " of size " <<  size_in_bytes << std::endl;
 
   if (!host_ptr)
     return handle_type(reinterpret_cast<char *>(dev_ptr), detail::cuda_deleter<char>());
@@ -112,7 +113,7 @@ inline handle_type  memory_create(vcl_size_t size_in_bytes, const void * host_pt
   handle_type new_handle(reinterpret_cast<char*>(dev_ptr), detail::cuda_deleter<char>());
 
   // copy data:
-  //std::cout << "Filling new handle from host_ptr " << host_ptr << std::endl;
+  //Rcpp::Rcout << "Filling new handle from host_ptr " << host_ptr << std::endl;
   cudaMemcpy(new_handle.get(), host_ptr, size_in_bytes, cudaMemcpyHostToDevice);
 
   return new_handle;

@@ -29,6 +29,7 @@
 #include <map>
 #include <set>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -432,7 +433,7 @@ __global__ void amg_agg_merge_undecided(IndexT       *point_types,
         unsigned int influenced_point_id = influences_id[j];
         if (point_types[influenced_point_id] != viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED) // either coarse or fine point
         {
-          //std::cout << "Setting fine node " << i << " to be aggregated with node " << *influence_iter << "/" << pointvector.get_coarse_index(*influence_iter) << std::endl;
+          //Rcpp::Rcout << "Setting fine node " << i << " to be aggregated with node " << *influence_iter << "/" << pointvector.get_coarse_index(*influence_iter) << std::endl;
           coarse_ids[i] = coarse_ids[influenced_point_id];
           break;
         }

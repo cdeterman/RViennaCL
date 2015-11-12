@@ -36,6 +36,7 @@
 // #include "viennacl/linalg/cuda/spgemm.hpp"
 //#endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

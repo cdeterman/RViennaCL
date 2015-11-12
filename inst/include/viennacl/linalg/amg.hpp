@@ -47,6 +47,7 @@
 
 #define VIENNACL_AMG_MAX_LEVELS 20
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

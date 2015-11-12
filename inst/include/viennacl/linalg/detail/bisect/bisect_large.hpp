@@ -39,6 +39,7 @@
 #include "viennacl/linalg/detail/bisect/structs.hpp"
 #include "viennacl/linalg/detail/bisect/bisect_kernel_calls.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

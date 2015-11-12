@@ -27,6 +27,7 @@
 #include "viennacl/ocl/backend.hpp"
 #include "viennacl/ocl/device.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl

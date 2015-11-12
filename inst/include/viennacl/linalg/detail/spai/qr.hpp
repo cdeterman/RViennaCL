@@ -49,6 +49,7 @@
 #include "viennacl/linalg/detail/spai/block_vector.hpp"
 #include "viennacl/linalg/opencl/kernels/spai.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -93,7 +94,7 @@ void print_continious_matrix(VectorT & con_A_I_J,
   for (vcl_size_t i = 0; i < g_I.size(); ++i)
   {
     write_to_block(con_A_I_J, blocks_ind[i], g_I[i], g_J[i], com_A_I_J[i]);
-    std::cout << com_A_I_J[i] << std::endl;
+    Rcpp::Rcout << com_A_I_J[i] << std::endl;
   }
 }
 
@@ -105,13 +106,13 @@ void print_continious_vector(VectorT & con_v,
   typedef typename VectorT::value_type     NumericType;
 
   std::vector<boost::numeric::ublas::vector<NumericType> > com_v(g_J.size());
-  //Print<ScalarType>(std::cout, con_v.begin(), con_v.end());
+  //Print<ScalarType>(Rcpp::Rcout, con_v.begin(), con_v.end());
   for (vcl_size_t i = 0; i < g_J.size(); ++i)
   {
     com_v[i].resize(g_J[i].size());
     for (vcl_size_t j = 0; j < g_J[i].size(); ++j)
       com_v[i](j) = con_v[block_ind[i] + j];
-    std::cout << com_v[i] << std::endl;
+    Rcpp::Rcout << com_v[i] << std::endl;
   }
 }
 

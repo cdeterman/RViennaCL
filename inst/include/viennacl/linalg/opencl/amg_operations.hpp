@@ -31,6 +31,7 @@
 #include "viennacl/linalg/opencl/kernels/amg.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

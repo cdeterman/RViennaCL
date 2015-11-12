@@ -29,6 +29,7 @@
 #include "viennacl/device_specific/forwards.h"
 #include "viennacl/device_specific/utils.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

@@ -29,6 +29,7 @@
 #include "viennacl/ocl/forwards.h"
 #include "viennacl/backend/mem_handle.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief Represents a generic 'context' similar to an OpenCL context, but is backend-agnostic and thus also suitable for CUDA and OpenMP

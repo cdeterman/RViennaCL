@@ -38,6 +38,7 @@
 #include "viennacl/meta/result_of.hpp"
 #include "viennacl/linalg/iterative_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

@@ -43,6 +43,7 @@
 #include "viennacl/linalg/cuda/matrix_operations_prod.hpp"
 #include "viennacl/linalg/cuda/matrix_operations_prod.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

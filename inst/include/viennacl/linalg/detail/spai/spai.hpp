@@ -67,6 +67,7 @@
 
 #define VIENNACL_SPAI_K_b 20
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -81,7 +82,7 @@ template<typename SparseVectorT>
 void print_sparse_vector(SparseVectorT const & v)
 {
   for (typename SparseVectorT::const_iterator vec_it = v.begin(); vec_it!= v.end(); ++vec_it)
-    std::cout << "[ " << vec_it->first << " ]:" << vec_it->second << std::endl;
+    Rcpp::Rcout << "[ " << vec_it->first << " ]:" << vec_it->second << std::endl;
 }
 
 template<typename DenseMatrixT>
@@ -90,8 +91,8 @@ void print_matrix(DenseMatrixT & m)
   for (int i = 0; i < m.size2(); ++i)
   {
     for (int j = 0; j < m.size1(); ++j)
-      std::cout<<m(j, i)<<" ";
-    std::cout<<std::endl;
+      Rcpp::Rcout<<m(j, i)<<" ";
+    Rcpp::Rcout<<std::endl;
   }
 }
 
@@ -373,9 +374,9 @@ void least_square_solve(std::vector<SparseVectorT> & A_v_c,
       NumericT res_norm = 0;
       //compute norm of res - just to make sure that this implementatino works correct
       sparse_norm_2(g_res[static_cast<vcl_size_t>(i)], res_norm);
-      //std::cout<<"Residual norm of column #: "<<i<<std::endl;
-      //std::cout<<res_norm<<std::endl;
-      //std::cout<<"************************"<<std::endl;
+      //Rcpp::Rcout<<"Residual norm of column #: "<<i<<std::endl;
+      //Rcpp::Rcout<<res_norm<<std::endl;
+      //Rcpp::Rcout<<"************************"<<std::endl;
       g_is_update[static_cast<vcl_size_t>(i)] = (res_norm > tag.getResidualNormThreshold())&& (!tag.getIsStatic())?(1):(0);
     }
   }
@@ -429,9 +430,9 @@ void least_square_solve(std::vector<SparseVectorT> const & A_v_c,
 
       NumericType res_norm = 0;
       sparse_norm_2(g_res[i], res_norm);
-//                    std::cout<<"Residual norm of column #: "<<i<<std::endl;
-//                    std::cout<<res_norm<<std::endl;
-//                    std::cout<<"************************"<<std::endl;
+//                    Rcpp::Rcout<<"Residual norm of column #: "<<i<<std::endl;
+//                    Rcpp::Rcout<<res_norm<<std::endl;
+//                    Rcpp::Rcout<<"************************"<<std::endl;
       g_is_update[i] = (res_norm > tag.getResidualNormThreshold())&& (!tag.getIsStatic());
     }
   }
@@ -807,12 +808,12 @@ void computeSPAI(viennacl::compressed_matrix<NumericT, AlignmentV> const & A, //
       block_set_up(A, A_v_c, M_v, g_is_update, g_I, g_J, g_A_I_J_vcl, g_bv_vcl);
     else
       block_update(A, A_v_c, g_is_update, g_res, g_J, g_I, g_A_I_J_vcl, g_bv_vcl, tag);
-    //std::cout<<"Phase 2 timing: "<<timer.get()<<std::endl;
+    //Rcpp::Rcout<<"Phase 2 timing: "<<timer.get()<<std::endl;
     //PERFORM LEAST SQUARE problems solution
     //PHASE TWO
     //timer.start();
     least_square_solve<SparseVectorType, NumericT>(A_v_c, M_v, g_I, g_J, g_A_I_J_vcl, g_bv_vcl, g_res, g_is_update, tag, viennacl::traits::context(A));
-    //std::cout<<"Phase 3 timing: "<<timer.get()<<std::endl;
+    //Rcpp::Rcout<<"Phase 3 timing: "<<timer.get()<<std::endl;
     if (tag.getIsStatic())
       break;
     cur_iter++;

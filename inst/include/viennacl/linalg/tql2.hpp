@@ -30,6 +30,7 @@
 #include "viennacl/linalg/qr-method-common.hpp"
 #include "viennacl/linalg/prod.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

@@ -32,6 +32,7 @@
 
 #include "viennacl/linalg/vandermonde_matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

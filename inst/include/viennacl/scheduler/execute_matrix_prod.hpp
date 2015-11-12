@@ -35,6 +35,7 @@
 #include "viennacl/ell_matrix.hpp"
 #include "viennacl/hyb_matrix.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler
@@ -290,7 +291,7 @@ namespace detail
     }
     else
     {
-      std::cout << "A.subtype: " << A.subtype << std::endl;
+      Rcpp::Rcout << "A.subtype: " << A.subtype << std::endl;
       throw statement_not_supported_exception("Invalid matrix type for matrix-vector product");
     }
   }
@@ -313,7 +314,7 @@ inline void execute_matrix_prod(statement const & s, statement_node const & root
   // check for temporary on lhs:
   if (lhs_needs_temporary)
   {
-    std::cout << "Temporary for LHS!" << std::endl;
+    Rcpp::Rcout << "Temporary for LHS!" << std::endl;
     detail::new_element(new_root_lhs.lhs, root_node.lhs, ctx);
 
     new_root_lhs.op.type_family = OPERATION_BINARY_TYPE_FAMILY;

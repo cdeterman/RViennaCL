@@ -57,6 +57,7 @@
 * Initializes the device database with the provided profiles. Updated semi-automatically.
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

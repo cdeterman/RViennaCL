@@ -27,6 +27,7 @@
 #include "viennacl/device_specific/templates/row_wise_reduction_template.hpp"
 #include "viennacl/device_specific/templates/matrix_product_template.hpp"
 
+#include <Rcpp.h>
 namespace viennacl{
 namespace device_specific{
 namespace builtin_database{

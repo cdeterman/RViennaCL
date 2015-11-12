@@ -22,6 +22,7 @@
 #include "viennacl/meta/predicate.hpp"
 #include "viennacl/scheduler/forwards.h"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

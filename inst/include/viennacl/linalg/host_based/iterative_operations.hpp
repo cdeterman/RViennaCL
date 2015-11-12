@@ -42,6 +42,7 @@
   #define VIENNACL_OPENMP_VECTOR_MIN_SIZE  5000
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

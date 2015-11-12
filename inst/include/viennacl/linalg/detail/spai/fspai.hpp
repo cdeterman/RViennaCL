@@ -54,6 +54,7 @@
     @brief Implementation of FSPAI. Experimental.
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -213,8 +214,8 @@ void cholesky_decompose(MatrixT & A)
   {
     if (A(k,k) <= 0)
     {
-      std::cout << "k: " << k << std::endl;
-      std::cout << "A(k,k): " << A(k,k) << std::endl;
+      Rcpp::Rcout << "k: " << k << std::endl;
+      Rcpp::Rcout << "A(k,k): " << A(k,k) << std::endl;
     }
 
     assert(A(k,k) > 0 && bool("Matrix not positive definite in Cholesky factorization."));
@@ -323,7 +324,7 @@ void computeFSPAI(MatrixT const & A,
   //
   // preprocessing: Store A in a STL container:
   //
-  //std::cout << "Transferring to STL container:" << std::endl;
+  //Rcpp::Rcout << "Transferring to STL container:" << std::endl;
   std::vector<std::vector<NumericT> >    y_k(A.size1());
   SparseMatrixType   STL_A(A.size1());
   sym_sparse_matrix_to_stl(A, STL_A);
@@ -332,14 +333,14 @@ void computeFSPAI(MatrixT const & A,
   //
   // Step 1: Generate pattern indices
   //
-  //std::cout << "computeFSPAI(): Generating pattern..." << std::endl;
+  //Rcpp::Rcout << "computeFSPAI(): Generating pattern..." << std::endl;
   std::vector<std::vector<vcl_size_t> > J(A.size1());
   generateJ(PatternA, J);
 
   //
   // Step 2: Set up matrix blocks
   //
-  //std::cout << "computeFSPAI(): Setting up matrix blocks..." << std::endl;
+  //Rcpp::Rcout << "computeFSPAI(): Setting up matrix blocks..." << std::endl;
   std::vector<DenseMatrixType>  subblocks_A(A.size1());
   fill_blocks(STL_A, subblocks_A, J, y_k);
   STL_A.clear(); //not needed anymore
@@ -347,33 +348,33 @@ void computeFSPAI(MatrixT const & A,
   //
   // Step 3: Cholesky-factor blocks
   //
-  //std::cout << "computeFSPAI(): Cholesky-factorization..." << std::endl;
+  //Rcpp::Rcout << "computeFSPAI(): Cholesky-factorization..." << std::endl;
   for (vcl_size_t i=0; i<subblocks_A.size(); ++i)
   {
-    //std::cout << "Block before: " << subblocks_A[i] << std::endl;
+    //Rcpp::Rcout << "Block before: " << subblocks_A[i] << std::endl;
     cholesky_decompose(subblocks_A[i]);
-    //std::cout << "Block after: " << subblocks_A[i] << std::endl;
+    //Rcpp::Rcout << "Block after: " << subblocks_A[i] << std::endl;
   }
 
 
   /*vcl_size_t num_bytes = 0;
   for (vcl_size_t i=0; i<subblocks_A.size(); ++i)
     num_bytes += 8*subblocks_A[i].size1()*subblocks_A[i].size2();*/
-  //std::cout << "Memory for FSPAI matrix: " << num_bytes / (1024.0 * 1024.0) << " MB" << std::endl;
+  //Rcpp::Rcout << "Memory for FSPAI matrix: " << num_bytes / (1024.0 * 1024.0) << " MB" << std::endl;
 
   //
   // Step 4: Solve for y_k
   //
-  //std::cout << "computeFSPAI(): Cholesky-solve..." << std::endl;
+  //Rcpp::Rcout << "computeFSPAI(): Cholesky-solve..." << std::endl;
   for (vcl_size_t i=0; i<y_k.size(); ++i)
   {
     if (subblocks_A[i].size1() > 0) //block might be empty...
     {
       //y_k[i].resize(subblocks_A[i].size1());
-      //std::cout << "y_k[" << i << "]: ";
+      //Rcpp::Rcout << "y_k[" << i << "]: ";
       //for (vcl_size_t j=0; j<y_k[i].size(); ++j)
-      //  std::cout << y_k[i][j] << " ";
-      //std::cout << std::endl;
+      //  Rcpp::Rcout << y_k[i][j] << " ";
+      //Rcpp::Rcout << std::endl;
       cholesky_solve(subblocks_A[i], y_k[i]);
     }
   }
@@ -382,14 +383,14 @@ void computeFSPAI(MatrixT const & A,
   //
   // Step 5: Set up Cholesky factors L and L_trans
   //
-  //std::cout << "computeFSPAI(): Computing L..." << std::endl;
+  //Rcpp::Rcout << "computeFSPAI(): Computing L..." << std::endl;
   L.resize(A.size1(), A.size2(), false);
   L.reserve(A.nnz(), false);
   L_trans.resize(A.size1(), A.size2(), false);
   L_trans.reserve(A.nnz(), false);
   computeL(A, L, L_trans, y_k, J);
 
-  //std::cout << "L: " << L << std::endl;
+  //Rcpp::Rcout << "L: " << L << std::endl;
 }
 
 

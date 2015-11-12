@@ -30,6 +30,7 @@
 #include "viennacl/fft.hpp"
 //#include "viennacl/linalg/kernels/coordinate_matrix_kernels.h"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -54,7 +55,7 @@ void prod_impl(viennacl::circulant_matrix<NumericT, AlignmentV> const & mat,
   assert(mat.size2() == vec.size() && bool("Dimension mismatch"));
   //result.clear();
 
-  //std::cout << "prod(circulant_matrix" << ALIGNMENT << ", vector) called with internal_nnz=" << mat.internal_nnz() << std::endl;
+  //Rcpp::Rcout << "prod(circulant_matrix" << ALIGNMENT << ", vector) called with internal_nnz=" << mat.internal_nnz() << std::endl;
 
   viennacl::vector<NumericT> circ(mat.elements().size() * 2);
   viennacl::linalg::real_to_complex(mat.elements(), circ, mat.elements().size());

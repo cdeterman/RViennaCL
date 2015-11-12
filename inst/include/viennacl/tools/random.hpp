@@ -30,6 +30,7 @@
  *  It is, however, enough to produce meaningful initial guesses.
  */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace tools

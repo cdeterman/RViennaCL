@@ -36,6 +36,7 @@
 #include "viennacl/linalg/opencl/kernels/svd.hpp"
 #include "viennacl/linalg/qr-method-common.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg
@@ -121,7 +122,7 @@ namespace viennacl
 
         for (int k = static_cast<int>(n) - 1; k >= 0; k--)
         {
-          // std::cout << "K = " << k << std::endl;
+          // Rcpp::Rcout << "K = " << k << std::endl;
 
           vcl_size_t iter = 0;
           for (iter = 0; iter < detail::ITER_MAX; iter++)
@@ -174,7 +175,7 @@ namespace viennacl
                 ss1[vcl_size_t(i)] = s;
               }
 
-              // std::cout << "Hitted!" << l1 << " " << l2 << "\n";
+              // Rcpp::Rcout << "Hitted!" << l1 << " " << l2 << "\n";
 
               // for (int i = l; i <= l2; i++)
               // {

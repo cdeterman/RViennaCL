@@ -32,6 +32,7 @@
 #include "viennacl/forwards.h"
 #include "viennacl/tools/adapter.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace tools

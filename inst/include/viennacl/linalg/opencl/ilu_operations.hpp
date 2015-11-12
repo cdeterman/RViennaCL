@@ -38,6 +38,7 @@
 #include "viennacl/linalg/vector_operations.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

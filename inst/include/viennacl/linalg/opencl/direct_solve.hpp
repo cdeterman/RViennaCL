@@ -30,6 +30,7 @@
 #include "viennacl/linalg/opencl/kernels/matrix_solve.hpp"
 #include "viennacl/linalg/opencl/kernels/matrix.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

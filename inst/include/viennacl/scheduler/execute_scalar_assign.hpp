@@ -28,6 +28,7 @@
 #include "viennacl/scheduler/execute_vector_dispatcher.hpp"
 #include "viennacl/scheduler/execute_util.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

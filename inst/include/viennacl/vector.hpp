@@ -35,6 +35,7 @@
 #include "viennacl/context.hpp"
 #include "viennacl/traits/handle.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

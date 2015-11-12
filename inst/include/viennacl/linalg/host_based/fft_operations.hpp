@@ -32,6 +32,7 @@
 #include <cmath>
 #include <complex>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -573,7 +574,7 @@ void radix2(viennacl::matrix<NumericT, viennacl::row_major, AlignmentV>& in, vcl
   viennacl::linalg::host_based::detail::fft::copy_to_complex_array(&input_complex[0], data, size_mat);
   if (size <= viennacl::linalg::host_based::detail::fft::MAX_LOCAL_POINTS_NUM)
   {
-    //std::cout<<bit_size<<","<<size<<","<<stride<<","<<batch_num<<","<<size<<","<<sign<<","<<data_order<<std::endl;
+    //Rcpp::Rcout<<bit_size<<","<<size<<","<<stride<<","<<batch_num<<","<<size<<","<<sign<<","<<data_order<<std::endl;
     std::vector<std::complex<NumericT> > lcl_input(size_mat);
     viennacl::linalg::host_based::fft_radix2_local(&input_complex[0], &lcl_input[0], batch_num, bit_size, size, stride, sign, data_order);
   }

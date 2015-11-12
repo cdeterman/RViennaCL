@@ -37,6 +37,7 @@
 
 #include "viennacl/linalg/cuda/sparse_matrix_operations_solve.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -592,7 +593,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_matrix_gemm_stage_1");
 #ifdef VIENNACL_WITH_SPGEMM_CUDA_TIMINGS
   cudaDeviceSynchronize();
-  std::cout << "Stage 1 device: " << timer.get() << std::endl;
+  Rcpp::Rcout << "Stage 1 device: " << timer.get() << std::endl;
   timer.start();
 #endif
 
@@ -605,7 +606,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   max_nnz_row_B.switch_memory_context(viennacl::context(MAIN_MEMORY));
   unsigned int const * max_nnz_row_B_ptr = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(max_nnz_row_B.handle());
 
-  //std::cout << "Subwarp sizes: " << subwarp_sizes << std::endl;
+  //Rcpp::Rcout << "Subwarp sizes: " << subwarp_sizes << std::endl;
 
   viennacl::vector<unsigned int> scratchpad_offsets(blocknum, viennacl::context(MAIN_MEMORY)); // upper bound for the nonzeros per row encountered for each work group
   unsigned int * scratchpad_offsets_ptr = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(scratchpad_offsets.handle());
@@ -613,14 +614,14 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   unsigned int max_subwarp_size = 0;
   unsigned int A_max_nnz_per_row = 0;
   unsigned int scratchpad_offset = 0;
-  //std::cout << "Scratchpad offsets: " << std::endl;
+  //Rcpp::Rcout << "Scratchpad offsets: " << std::endl;
   for (std::size_t i=0; i<subwarp_sizes.size(); ++i)
   {
     max_subwarp_size = std::max(max_subwarp_size, subwarp_sizes_ptr[i]);
     A_max_nnz_per_row = std::max(A_max_nnz_per_row, max_nnz_row_A_ptr[i]);
 
     scratchpad_offsets_ptr[i] = scratchpad_offset;
-    //std::cout << scratchpad_offset << " (with " << (max_nnz_row_A_ptr[i] / subwarp_sizes_ptr[i] + 1) << " warp reloads per group at " << max_nnz_row_A_ptr[i] << " max rows, "
+    //Rcpp::Rcout << scratchpad_offset << " (with " << (max_nnz_row_A_ptr[i] / subwarp_sizes_ptr[i] + 1) << " warp reloads per group at " << max_nnz_row_A_ptr[i] << " max rows, "
     //                                            << upper_bound_nonzeros_per_row_C_ptr[i] << " row length, "
     //                                            << (256 / subwarp_sizes_ptr[i]) << " warps per group " << std::endl;
     unsigned int max_warp_reloads = max_nnz_row_A_ptr[i] / subwarp_sizes_ptr[i] + 1;
@@ -630,7 +631,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
                         * max_row_length_after_warp_merge
                         * warps_in_group;
   }
-  //std::cout << "Scratchpad memory for indices: " << scratchpad_offset << " entries (" << scratchpad_offset * sizeof(unsigned int) * 1e-6 << " MB)" << std::endl;
+  //Rcpp::Rcout << "Scratchpad memory for indices: " << scratchpad_offset << " entries (" << scratchpad_offset * sizeof(unsigned int) * 1e-6 << " MB)" << std::endl;
 
   if (max_subwarp_size > 32)
   {
@@ -703,7 +704,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   viennacl::vector<unsigned int> scratchpad_indices(scratchpad_offset, viennacl::traits::context(A)); // upper bound for the nonzeros per row encountered for each work group
 
 #ifdef VIENNACL_WITH_SPGEMM_CUDA_TIMINGS
-  std::cout << "Intermediate host stage: " << timer.get() << std::endl;
+  Rcpp::Rcout << "Intermediate host stage: " << timer.get() << std::endl;
   timer.start();
 #endif
 
@@ -727,7 +728,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_matrix_gemm_stage_2");
 #ifdef VIENNACL_WITH_SPGEMM_CUDA_TIMINGS
   cudaDeviceSynchronize();
-  std::cout << "Stage 2: " << timer.get() << std::endl;
+  Rcpp::Rcout << "Stage 2: " << timer.get() << std::endl;
   timer.start();
 #endif
 
@@ -754,7 +755,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   viennacl::vector<NumericT> scratchpad_values(scratchpad_offset, viennacl::traits::context(A)); // upper bound for the nonzeros per row encountered for each work group
 
 #ifdef VIENNACL_WITH_SPGEMM_CUDA_TIMINGS
-  std::cout << "Intermediate stage 2->3: " << timer.get() << std::endl;
+  Rcpp::Rcout << "Intermediate stage 2->3: " << timer.get() << std::endl;
   timer.start();
 #endif
 
@@ -779,8 +780,8 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_matrix_gemm_stage_3");
 #ifdef VIENNACL_WITH_SPGEMM_CUDA_TIMINGS
   cudaDeviceSynchronize();
-  std::cout << "Stage 3: " << timer.get() << std::endl;
-  std::cout << "----------" << std::endl;
+  Rcpp::Rcout << "Stage 3: " << timer.get() << std::endl;
+  Rcpp::Rcout << "----------" << std::endl;
 #endif
 
 }

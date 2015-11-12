@@ -29,6 +29,7 @@
 
 #include <vector>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

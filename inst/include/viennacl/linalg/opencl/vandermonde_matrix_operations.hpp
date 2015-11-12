@@ -30,6 +30,7 @@
 #include "viennacl/fft.hpp"
 #include "viennacl/linalg/opencl/kernels/fft.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

@@ -32,6 +32,7 @@
 #include "viennacl/linalg/host_based/vector_operations.hpp"
 #include "viennacl/linalg/host_based/fft_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

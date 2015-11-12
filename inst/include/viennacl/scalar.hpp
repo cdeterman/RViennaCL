@@ -34,6 +34,7 @@
 #include "viennacl/ocl/backend.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief A proxy for scalar expressions (e.g. from inner vector products)

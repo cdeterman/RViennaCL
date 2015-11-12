@@ -39,6 +39,7 @@ License:         MIT (X11), see file LICENSE in the base directory
 
 #include "viennacl/tools/tools.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

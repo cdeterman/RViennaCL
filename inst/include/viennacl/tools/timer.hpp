@@ -32,6 +32,7 @@
 #undef min
 #undef max
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace tools
@@ -78,6 +79,7 @@ private:
 
 #include <sys/time.h>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace tools

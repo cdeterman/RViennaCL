@@ -31,6 +31,7 @@
 #include "viennacl/linalg/toeplitz_matrix_operations.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

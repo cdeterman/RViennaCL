@@ -35,6 +35,7 @@
 #include "viennacl/linalg/cuda/bisect_kernel_large_multi.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

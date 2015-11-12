@@ -38,6 +38,7 @@
 
 #include "viennacl/misc/cuthill_mckee.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace detail

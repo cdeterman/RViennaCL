@@ -31,6 +31,7 @@
 #include <vector>
 #include <map>
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //
@@ -86,7 +87,7 @@ namespace viennacl
                                   VectorT>::type
     prod(MatrixT const& matrix, VectorT const& vector)
     {
-      // std::cout << "ublas .. " << std::endl;
+      // Rcpp::Rcout << "ublas .. " << std::endl;
       return boost::numeric::ublas::prod(matrix, vector);
     }
     #endif
@@ -137,7 +138,7 @@ namespace viennacl
          typename viennacl::enable_if< viennacl::is_stl< typename viennacl::traits::tag_of< MatrixT >::type >::value
                                      >::type* dummy = 0)
     {
-      // std::cout << "std .. " << std::endl;
+      // Rcpp::Rcout << "std .. " << std::endl;
       return prod_impl(matrix, vector);
     }*/
 

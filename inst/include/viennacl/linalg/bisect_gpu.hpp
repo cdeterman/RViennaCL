@@ -42,6 +42,7 @@
 #include "viennacl/linalg/detail/bisect/bisect_small.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

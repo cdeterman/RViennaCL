@@ -38,6 +38,7 @@
 #include "viennacl/linalg/opencl/kernels/compressed_compressed_matrix.hpp"
 #include "viennacl/linalg/opencl/common.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -709,7 +710,7 @@ void prod_impl(viennacl::coordinate_matrix<NumericT, AlignmentV> const & A,
   layout_y.size   = cl_uint(viennacl::traits::size(y));
   layout_y.internal_size   = cl_uint(viennacl::traits::internal_size(y));
 
-  //std::cout << "prod(coordinate_matrix" << AlignmentV << ", vector) called with internal_nnz=" << A.internal_nnz() << std::endl;
+  //Rcpp::Rcout << "prod(coordinate_matrix" << AlignmentV << ", vector) called with internal_nnz=" << A.internal_nnz() << std::endl;
 
   viennacl::ocl::kernel & k = ctx.get_kernel(viennacl::linalg::opencl::kernels::coordinate_matrix<NumericT>::program_name(), "vec_mul");
   unsigned int thread_num = 128; //k.local_work_size(0);

@@ -29,6 +29,7 @@
 
 #include "viennacl/device_specific/forwards.h"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific
@@ -120,21 +121,21 @@ inline ParamT const & get_parameters(database_type<ParamT> const & database, vie
 
 
   /*-Vendor ID-*/
-  //  std::cout << "Looking up vendor ID..." << std::endl;
+  //  Rcpp::Rcout << "Looking up vendor ID..." << std::endl;
   typename database_type<ParamT>::type::map_t::const_iterator vendor_it = database.map.d.find(vendor_id);
   //Vendor not recognized =>  device type default
   if (vendor_it==database.map.d.end())
     return database.at(ocl::unknown_id, dev_type, ocl::unknown, "", numeric_type);
 
   /*-Device Type-*/
-  //  std::cout << "Looking up device type..." << std::endl;
+  //  Rcpp::Rcout << "Looking up device type..." << std::endl;
   typename database_type<ParamT>::device_type_t::map_t::const_iterator device_type_it = vendor_it->second.d.find(dev_type);
   //Device type not recognized for this vendor => device type default
   if (device_type_it==vendor_it->second.d.end())
     return database.at(ocl::unknown_id, dev_type, ocl::unknown, "", numeric_type);
 
   /*-Device Architecture-*/
-  //  std::cout << "Looking up device architecture..." << std::endl;
+  //  Rcpp::Rcout << "Looking up device architecture..." << std::endl;
   typename database_type<ParamT>::device_architecture_t::map_t::const_iterator architecture_it = device_type_it->second.d.find(device_architecture);
   //Architecture not found. We try to find the closest architecture available.
   if (architecture_it==device_type_it->second.d.end())
@@ -155,7 +156,7 @@ inline ParamT const & get_parameters(database_type<ParamT> const & database, vie
   }
 
   /*-Device Name-*/
-  //  std::cout << "Looking up device name..." << std::endl;
+  //  Rcpp::Rcout << "Looking up device name..." << std::endl;
   typename database_type<ParamT>::device_name_t::map_t::const_iterator device_name_it = architecture_it->second.d.find(device_name);
   //Name not found. We just take the first device for the architecture
   if (device_name_it==architecture_it->second.d.end())
@@ -163,14 +164,14 @@ inline ParamT const & get_parameters(database_type<ParamT> const & database, vie
     device_name_it = architecture_it->second.d.begin();
   }
 
-  //  std::cout << "Looking up expression name.." << std::endl;
+  //  Rcpp::Rcout << "Looking up expression name.." << std::endl;
   /*-Expression-*/
   typename database_type<ParamT>::expression_t::map_t::const_iterator expression_it = device_name_it->second.d.find(numeric_type);
   //Expression not found => Vendor default
   if (expression_it==device_name_it->second.d.end())
     return database.at(ocl::unknown_id, dev_type, ocl::unknown, "", numeric_type);
 
-  //  std::cout << "Device found in the database! Getting profile..." << std::endl;
+  //  Rcpp::Rcout << "Device found in the database! Getting profile..." << std::endl;
   //Everything okay. Return specific profile//
   return expression_it->second;
 }

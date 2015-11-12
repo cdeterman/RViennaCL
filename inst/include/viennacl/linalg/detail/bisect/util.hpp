@@ -27,6 +27,7 @@
     "This software contains source code provided by NVIDIA Corporation."
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

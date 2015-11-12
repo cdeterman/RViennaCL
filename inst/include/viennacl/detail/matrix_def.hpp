@@ -25,6 +25,7 @@
 #include "viennacl/forwards.h"
 #include "viennacl/tools/entry_proxy.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief Base class for representing matrices where the individual entries are not all stored explicitly, e.g. identity_matrix<>

@@ -38,6 +38,7 @@
   #include "viennacl/linalg/cuda/amg_operations.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

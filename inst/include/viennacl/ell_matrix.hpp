@@ -32,6 +32,7 @@
 
 #include "viennacl/linalg/sparse_matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief Sparse matrix class using the ELLPACK format for storing the nonzeros.
@@ -149,7 +150,7 @@ void copy(const CPUMatrixT& cpu_matrix, ell_matrix<NumericT, AlignmentV>& gpu_ma
     viennacl::backend::typesafe_host_array<unsigned int> coords(gpu_matrix.handle2(), nnz);
     std::vector<NumericT> elements(nnz, 0);
 
-    // std::cout << "ELL_MATRIX copy " << gpu_matrix.maxnnz_ << " " << gpu_matrix.rows_ << " " << gpu_matrix.cols_ << " "
+    // Rcpp::Rcout << "ELL_MATRIX copy " << gpu_matrix.maxnnz_ << " " << gpu_matrix.rows_ << " " << gpu_matrix.cols_ << " "
     //             << gpu_matrix.internal_maxnnz() << "\n";
 
     for (typename CPUMatrixT::const_iterator1 row_it = cpu_matrix.begin1(); row_it != cpu_matrix.end1(); ++row_it)
@@ -160,7 +161,7 @@ void copy(const CPUMatrixT& cpu_matrix, ell_matrix<NumericT, AlignmentV>& gpu_ma
       {
         coords.set(gpu_matrix.internal_size1() * data_index + col_it.index1(), col_it.index2());
         elements[gpu_matrix.internal_size1() * data_index + col_it.index1()] = *col_it;
-        //std::cout << *col_it << "\n";
+        //Rcpp::Rcout << *col_it << "\n";
         data_index++;
       }
     }
@@ -216,7 +217,7 @@ void copy(const ell_matrix<NumericT, AlignmentV>& gpu_matrix, CPUMatrixT& cpu_ma
 
         if (coords[offset] >= gpu_matrix.size2())
         {
-          std::cerr << "ViennaCL encountered invalid data " << offset << " " << ind << " " << row << " " << coords[offset] << " " << gpu_matrix.size2() << std::endl;
+          Rcpp::Rcerr << "ViennaCL encountered invalid data " << offset << " " << ind << " " << row << " " << coords[offset] << " " << gpu_matrix.size2() << std::endl;
           return;
         }
 

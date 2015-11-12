@@ -39,6 +39,7 @@
 #include "viennacl/vector_proxy.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

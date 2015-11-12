@@ -27,6 +27,7 @@
 
 /** @file viennacl/linalg/opencl/kernels/sliced_ell_matrix.hpp
  *  @brief OpenCL kernel file for sliced_ell_matrix operations */
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -110,7 +111,7 @@ struct sliced_ell_matrix<NumericT, unsigned int>
 
       std::string prog_name = program_name();
       #ifdef VIENNACL_BUILD_INFO
-      std::cout << "Creating program " << prog_name << std::endl;
+      Rcpp::Rcout << "Creating program " << prog_name << std::endl;
       #endif
       ctx.add_program(source, prog_name);
       init_done[ctx.handle().get()] = true;

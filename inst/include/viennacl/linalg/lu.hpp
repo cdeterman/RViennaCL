@@ -30,6 +30,7 @@
 #include "viennacl/linalg/prod.hpp"
 #include "viennacl/linalg/direct_solve.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

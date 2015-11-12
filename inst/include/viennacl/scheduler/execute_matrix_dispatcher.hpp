@@ -30,6 +30,7 @@
 #include "viennacl/scheduler/execute_util.hpp"
 #include "viennacl/linalg/matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

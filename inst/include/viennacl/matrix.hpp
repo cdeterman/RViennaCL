@@ -34,6 +34,7 @@
 #include "viennacl/traits/handle.hpp"
 #include "viennacl/traits/row_major.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 
@@ -926,8 +927,8 @@ void copy(const CPUMatrixT & cpu_matrix,
 {
   typedef typename matrix<NumericT, F, AlignmentV>::size_type      size_type;
 
-  //std::cout << "Copying CPUMatrixT!" << std::endl;
-  //std::cout << "Size at begin: " << gpu_matrix.size1() << ", " << gpu_matrix.size2() << std::endl;
+  //Rcpp::Rcout << "Copying CPUMatrixT!" << std::endl;
+  //Rcpp::Rcout << "Size at begin: " << gpu_matrix.size1() << ", " << gpu_matrix.size2() << std::endl;
   if (gpu_matrix.size1() == 0 || gpu_matrix.size2() == 0)
   {
     gpu_matrix.resize(cpu_matrix.size1(),
@@ -945,7 +946,7 @@ void copy(const CPUMatrixT & cpu_matrix,
 
   viennacl::backend::memory_write(gpu_matrix.handle(), 0, sizeof(NumericT) * data.size(), &(data[0]));
   //gpu_matrix.elements_ = viennacl::ocl::current_context().create_memory(CL_MEM_READ_WRITE, data);
-  //std::cout << "Size at end: " << gpu_matrix.size1() << ", " << gpu_matrix.size2() << std::endl;
+  //Rcpp::Rcout << "Size at end: " << gpu_matrix.size1() << ", " << gpu_matrix.size2() << std::endl;
 }
 
 //

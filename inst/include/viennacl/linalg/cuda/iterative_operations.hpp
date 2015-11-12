@@ -28,6 +28,7 @@
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/linalg/cuda/common.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

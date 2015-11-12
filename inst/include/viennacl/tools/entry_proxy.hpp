@@ -26,6 +26,7 @@
 #include "viennacl/forwards.h"
 #include "viennacl/scalar.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

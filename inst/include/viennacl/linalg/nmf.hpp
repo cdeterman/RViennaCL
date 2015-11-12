@@ -41,6 +41,7 @@
 #include "viennacl/linalg/cuda/nmf_operations.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg

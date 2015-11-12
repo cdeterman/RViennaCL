@@ -31,6 +31,7 @@
 #include "viennacl/forwards.h"
 #include "viennacl/tools/shared_ptr.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace backend

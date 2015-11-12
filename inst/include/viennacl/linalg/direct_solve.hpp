@@ -41,6 +41,7 @@
 
 #define VIENNACL_DIRECT_SOLVE_BLOCKSIZE 128
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

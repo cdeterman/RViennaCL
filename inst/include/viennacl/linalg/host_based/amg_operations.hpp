@@ -33,6 +33,7 @@
 #include <omp.h>
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -129,7 +130,7 @@ void amg_influence_advanced(compressed_matrix<NumericT> const & A,
     }
 
     // Find all points that strongly influence current point (Yang, p.5)
-    //std::cout << "Looking for strongly influencing points for point " << i << std::endl;
+    //Rcpp::Rcout << "Looking for strongly influencing points for point " << i << std::endl;
     for (unsigned int nnz_index = row_start; nnz_index < row_stop; ++nnz_index)
     {
       unsigned int col = A_col_buffer[nnz_index];
@@ -195,7 +196,7 @@ void amg_influence_advanced(compressed_matrix<NumericT> const & A,
       continue;
 
     // Find all points that strongly influence current point (Yang, p.5)
-    //std::cout << "Looking for strongly influencing points for point " << i << std::endl;
+    //Rcpp::Rcout << "Looking for strongly influencing points for point " << i << std::endl;
     unsigned int *influences_id_write_ptr = influences_id_ptr + influences_row_ptr[i];
     for (unsigned int nnz_index = row_start; nnz_index < row_stop; ++nnz_index)
     {
@@ -209,7 +210,7 @@ void amg_influence_advanced(compressed_matrix<NumericT> const & A,
       if (   (diag > 0 && diag * value <= tag.get_strong_connection_threshold() * diag * largest_negative)
           || (diag < 0 && diag * value <= tag.get_strong_connection_threshold() * diag * largest_positive))
       {
-        //std::cout << " - Adding influence from point " << col << std::endl;
+        //Rcpp::Rcout << " - Adding influence from point " << col << std::endl;
         *influences_id_write_ptr = col;
         ++influences_id_write_ptr;
       }
@@ -246,7 +247,7 @@ inline void enumerate_coarse_points(viennacl::linalg::detail::amg::amg_level_con
       coarse_id_ptr[i] = coarse_id++;
   }
 
-  //std::cout << "Coarse nodes after enumerate_coarse_points(): " << coarse_id << std::endl;
+  //Rcpp::Rcout << "Coarse nodes after enumerate_coarse_points(): " << coarse_id << std::endl;
   amg_context.num_coarse_ = coarse_id;
 }
 
@@ -297,7 +298,7 @@ void amg_coarse_classic_onepass(compressed_matrix<NumericT> const & A,
   for (std::size_t i=0; i<A.size1(); ++i)
     points_by_influences.insert(amg_id_influence(i, influences_values_ptr[i]));
 
-  //std::cout << "Starting coarsening process..." << std::endl;
+  //Rcpp::Rcout << "Starting coarsening process..." << std::endl;
 
   while (!points_by_influences.empty())
   {
@@ -306,13 +307,13 @@ void amg_coarse_classic_onepass(compressed_matrix<NumericT> const & A,
     // remove point from queue:
     points_by_influences.erase(points_by_influences.begin());
 
-    //std::cout << "Working on point " << point.id << std::endl;
+    //Rcpp::Rcout << "Working on point " << point.id << std::endl;
 
     // point is already coarse or fine point, continue;
     if (point_types_ptr[point.id] != viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED)
       continue;
 
-    //std::cout << " Setting point " << point.id << " to a coarse point." << std::endl;
+    //Rcpp::Rcout << " Setting point " << point.id << " to a coarse point." << std::endl;
     // make this a coarse point:
     point_types_ptr[point.id] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE;
 
@@ -322,11 +323,11 @@ void amg_coarse_classic_onepass(compressed_matrix<NumericT> const & A,
     {
       unsigned int influenced_point_id = influences_id_ptr[j];
 
-      //std::cout << "Checking point " << influenced_point_id << std::endl;
+      //Rcpp::Rcout << "Checking point " << influenced_point_id << std::endl;
       if (point_types_ptr[influenced_point_id] != viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED)
         continue;
 
-      //std::cout << " Setting point " << influenced_point_id << " to a fine point." << std::endl;
+      //Rcpp::Rcout << " Setting point " << influenced_point_id << " to a fine point." << std::endl;
       point_types_ptr[influenced_point_id] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_FINE;
 
       // add one to influence measure for all undecided points strongly influencing this fine point.
@@ -399,7 +400,7 @@ void amg_coarse_ag_stage1_sequential(compressed_matrix<NumericT> const & A,
         point_types_ptr[influenced_point_id] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_FINE;
       }
 
-      //std::cout << "Setting new coarse node: " << i << std::endl;
+      //Rcpp::Rcout << "Setting new coarse node: " << i << std::endl;
       // Note: influences may include diagonal element, so it's important to *first* set fine points above before setting the coarse information here
       point_types_ptr[i] = viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE;
     }
@@ -663,7 +664,7 @@ void amg_coarse_ag(compressed_matrix<NumericT> const & A,
         unsigned int influenced_point_id = influences_id_ptr[j];
         if (point_types_ptr[influenced_point_id] != viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_UNDECIDED) // either coarse or fine point
         {
-          //std::cout << "Setting fine node " << i << " to be aggregated with node " << *influence_iter << "/" << pointvector.get_coarse_index(*influence_iter) << std::endl;
+          //Rcpp::Rcout << "Setting fine node " << i << " to be aggregated with node " << *influence_iter << "/" << pointvector.get_coarse_index(*influence_iter) << std::endl;
           coarse_id_ptr[i] = coarse_id_ptr[influenced_point_id];
           break;
         }
@@ -749,15 +750,15 @@ void amg_interpol_direct(compressed_matrix<NumericT> const & A,
   {
     unsigned int row = static_cast<unsigned int>(row2);
     std::map<unsigned int, NumericT> & P_setup_row = P_setup[row];
-    //std::cout << "Row " << row << ": " << std::endl;
+    //Rcpp::Rcout << "Row " << row << ": " << std::endl;
     if (point_types_ptr[row] == viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_COARSE)
     {
-      //std::cout << "  Setting value 1.0 at " << coarse_id_ptr[row] << std::endl;
+      //Rcpp::Rcout << "  Setting value 1.0 at " << coarse_id_ptr[row] << std::endl;
       P_setup_row[coarse_id_ptr[row]] = NumericT(1);
     }
     else if (point_types_ptr[row] == viennacl::linalg::detail::amg::amg_level_context::POINT_TYPE_FINE)
     {
-      //std::cout << "Building interpolant for fine point " << row << std::endl;
+      //Rcpp::Rcout << "Building interpolant for fine point " << row << std::endl;
 
       NumericT row_sum = 0;
       NumericT row_coarse_sum = 0;
@@ -792,7 +793,7 @@ void amg_interpol_direct(compressed_matrix<NumericT> const & A,
       }
 
       NumericT temp_res = -row_sum/(row_coarse_sum*diag);
-      //std::cout << "row_sum: " << row_sum << ", row_coarse_sum: " << row_coarse_sum << ", diag: " << diag << std::endl;
+      //Rcpp::Rcout << "row_sum: " << row_sum << ", row_coarse_sum: " << row_coarse_sum << ", diag: " << diag << std::endl;
 
       if (std::fabs(temp_res) > 1e-2 * std::fabs(diag))
       {
@@ -811,7 +812,7 @@ void amg_interpol_direct(compressed_matrix<NumericT> const & A,
 
           if (influence_iter != influence_end && *influence_iter == col)
           {
-            //std::cout << " Setting entry "  << temp_res * value << " at " << coarse_id_ptr[col] << " for point " << col << std::endl;
+            //Rcpp::Rcout << " Setting entry "  << temp_res * value << " at " << coarse_id_ptr[col] << " for point " << col << std::endl;
             P_setup_row[coarse_id_ptr[col]] = temp_res * value;
           }
         }
@@ -1018,7 +1019,7 @@ void amg_transpose(compressed_matrix<NumericT> const & A,
 
   for (std::size_t row = 0; row < A.size1(); ++row)
   {
-    //std::cout << "Row " << row << ": ";
+    //Rcpp::Rcout << "Row " << row << ": ";
     unsigned int row_start = A_row_buffer[row];
     unsigned int row_stop  = A_row_buffer[row+1];
 

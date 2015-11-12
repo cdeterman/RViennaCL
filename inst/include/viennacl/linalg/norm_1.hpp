@@ -28,6 +28,7 @@
 #include "viennacl/meta/enable_if.hpp"
 #include "viennacl/meta/tag_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //
@@ -48,7 +49,7 @@ namespace viennacl
                                 >::type
     norm_1(VectorT const& vector)
     {
-      // std::cout << "ublas .. " << std::endl;
+      // Rcpp::Rcout << "ublas .. " << std::endl;
       return boost::numeric::ublas::norm_1(vector);
     }
     #endif
@@ -60,7 +61,7 @@ namespace viennacl
     template< typename T, typename A >
     T norm_1(std::vector<T, A> const & v1)
     {
-      //std::cout << "stl .. " << std::endl;
+      //Rcpp::Rcout << "stl .. " << std::endl;
       T result = 0;
       for (typename std::vector<T, A>::size_type i=0; i<v1.size(); ++i)
         result += std::fabs(v1[i]);

@@ -37,6 +37,7 @@
 #endif
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace backend

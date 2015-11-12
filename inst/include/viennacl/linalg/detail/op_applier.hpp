@@ -26,6 +26,7 @@
 #include "viennacl/forwards.h"
 #include <cmath>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

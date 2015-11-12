@@ -29,6 +29,7 @@
 #include "viennacl/meta/tag_of.hpp"
 #include "viennacl/meta/result_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //
@@ -46,7 +47,7 @@ namespace viennacl
     template< typename NumericT >
     NumericT max(std::vector<NumericT> const & v1)
     {
-      //std::cout << "stl .. " << std::endl;
+      //Rcpp::Rcout << "stl .. " << std::endl;
       NumericT result = v1[0];
       for (vcl_size_t i=1; i<v1.size(); ++i)
       {
@@ -66,7 +67,7 @@ namespace viennacl
                                  viennacl::op_max >
     max(viennacl::vector_base<ScalarType> const & v1)
     {
-       //std::cout << "viennacl .. " << std::endl;
+       //Rcpp::Rcout << "viennacl .. " << std::endl;
       return viennacl::scalar_expression< const viennacl::vector_base<ScalarType>,
                                           const viennacl::vector_base<ScalarType>,
                                           viennacl::op_max >(v1, v1);
@@ -90,7 +91,7 @@ namespace viennacl
     template< typename NumericT >
     NumericT min(std::vector<NumericT> const & v1)
     {
-      //std::cout << "stl .. " << std::endl;
+      //Rcpp::Rcout << "stl .. " << std::endl;
       NumericT result = v1[0];
       for (vcl_size_t i=1; i<v1.size(); ++i)
       {
@@ -110,7 +111,7 @@ namespace viennacl
                                  viennacl::op_min >
     min(viennacl::vector_base<ScalarType> const & v1)
     {
-       //std::cout << "viennacl .. " << std::endl;
+       //Rcpp::Rcout << "viennacl .. " << std::endl;
       return viennacl::scalar_expression< const viennacl::vector_base<ScalarType>,
                                           const viennacl::vector_base<ScalarType>,
                                           viennacl::op_min >(v1, v1);
@@ -122,7 +123,7 @@ namespace viennacl
                                  viennacl::op_min >
     min(viennacl::vector<ScalarType> const & v1)
     {
-       //std::cout << "viennacl .. " << std::endl;
+       //Rcpp::Rcout << "viennacl .. " << std::endl;
       return viennacl::scalar_expression< const viennacl::vector_base<ScalarType>,
                                           const viennacl::vector_base<ScalarType>,
                                           viennacl::op_min >(v1, v1);

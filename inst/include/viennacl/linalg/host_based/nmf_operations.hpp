@@ -30,6 +30,7 @@
 
 #include "viennacl/linalg/host_based/common.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -216,7 +217,7 @@ namespace host_based
           diff_init = diff_val;
 
         if (conf.print_relative_error())
-          std::cout << diff_val / diff_init << std::endl;
+          Rcpp::Rcout << diff_val / diff_init << std::endl;
 
         // Approximation check
         if (diff_val / diff_init < conf.tolerance())

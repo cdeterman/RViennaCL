@@ -34,6 +34,7 @@
 #include "viennacl/ocl/forwards.h"
 #include "viennacl/ocl/error.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace ocl

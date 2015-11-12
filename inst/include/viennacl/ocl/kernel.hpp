@@ -34,6 +34,7 @@
 #include "viennacl/ocl/device.hpp"
 #include "viennacl/ocl/local_mem.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace ocl
@@ -66,7 +67,7 @@ namespace viennacl
       kernel() : handle_(), p_program_(NULL), p_context_(NULL), name_()
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Creating kernel object (default CTOR): " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Creating kernel object (default CTOR): " << name_ << std::endl;
         #endif
       }
 
@@ -74,7 +75,7 @@ namespace viennacl
         : handle_(kernel_handle, kernel_context), p_program_(&kernel_program), p_context_(&kernel_context), name_(name)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Creating kernel object (full CTOR): " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Creating kernel object (full CTOR): " << name_ << std::endl;
         #endif
         set_work_size_defaults();
       }
@@ -83,7 +84,7 @@ namespace viennacl
         : handle_(other.handle_), p_program_(other.p_program_), p_context_(other.p_context_), name_(other.name_)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Creating kernel object (Copy CTOR): " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Creating kernel object (Copy CTOR): " << name_ << std::endl;
         #endif
         local_work_size_[0] = other.local_work_size_[0];
         local_work_size_[1] = other.local_work_size_[1];
@@ -97,7 +98,7 @@ namespace viennacl
       viennacl::ocl::kernel & operator=(const kernel & other)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Assigning kernel object: " << other.name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Assigning kernel object: " << other.name_ << std::endl;
         #endif
         handle_ = other.handle_;
         p_program_ = other.p_program_;
@@ -116,7 +117,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_char val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting char kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting char kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_char), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -126,7 +127,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_uchar val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting unsigned char kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting unsigned char kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_uchar), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -136,7 +137,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_short val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting short kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting short kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_short), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -146,7 +147,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_ushort val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting unsigned short kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting unsigned short kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_ushort), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -157,7 +158,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_uint val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting unsigned int kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting unsigned int kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_uint), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -167,7 +168,7 @@ namespace viennacl
       void arg(unsigned int pos, packed_cl_uint val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting packed_cl_uint kernel argument (" << val.start << ", " << val.stride << ", " << val.size << ", " << val.internal_size << ") at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting packed_cl_uint kernel argument (" << val.start << ", " << val.stride << ", " << val.size << ", " << val.internal_size << ") at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(packed_cl_uint), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -177,7 +178,7 @@ namespace viennacl
       void arg(unsigned int pos, float val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting floating point kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting floating point kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(float), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -187,7 +188,7 @@ namespace viennacl
       void arg(unsigned int pos, double val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting double precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting double precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(double), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -197,7 +198,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_int val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting int precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting int precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_int), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -207,7 +208,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_ulong val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting ulong precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting ulong precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_ulong), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -217,7 +218,7 @@ namespace viennacl
       void arg(unsigned int pos, cl_long val)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting long precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting long precision kernel argument " << val << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_long), (void*)&val);
         VIENNACL_ERR_CHECK(err);
@@ -232,7 +233,7 @@ namespace viennacl
 
         cl_mem temp = val.handle().opencl_handle().get();
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting generic kernel argument " << temp << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting generic kernel argument " << temp << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(cl_mem), (void*)&temp);
         VIENNACL_ERR_CHECK(err);
@@ -245,7 +246,7 @@ namespace viennacl
       {
         CL_TYPE temp = h.get();
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting handle kernel argument " << temp << " at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting handle kernel argument " << temp << " at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, sizeof(CL_TYPE), (void*)&temp);
         VIENNACL_ERR_CHECK(err);
@@ -258,7 +259,7 @@ namespace viennacl
       {
         cl_uint size = static_cast<cl_uint>(mem.size());
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting local memory kernel argument of size " << size << " bytes at pos " << pos << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting local memory kernel argument of size " << size << " bytes at pos " << pos << " for kernel " << name_ << std::endl;
         #endif
         cl_int err = clSetKernelArg(handle_.get(), pos, size, 0);
         VIENNACL_ERR_CHECK(err);
@@ -762,7 +763,7 @@ namespace viennacl
       void local_work_size(int index, size_type s)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting local work size to " << s << " at index " << index << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting local work size to " << s << " at index " << index << " for kernel " << name_ << std::endl;
         #endif
         assert(index < 3 && bool("Work size index out of bounds"));
         local_work_size_[index] = s;
@@ -775,7 +776,7 @@ namespace viennacl
       void global_work_size(int index, size_type s)
       {
         #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-        std::cout << "ViennaCL: Setting global work size to " << s << " at index " << index << " for kernel " << name_ << std::endl;
+        Rcpp::Rcout << "ViennaCL: Setting global work size to " << s << " at index " << index << " for kernel " << name_ << std::endl;
         #endif
         assert(index < 3 && bool("Work size index out of bounds"));
         global_work_size_[index] = s;

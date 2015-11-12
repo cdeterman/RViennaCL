@@ -28,6 +28,7 @@
 #include "viennacl/meta/tag_of.hpp"
 #include "viennacl/meta/result_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 //
@@ -58,7 +59,7 @@ typename viennacl::enable_if< viennacl::is_eigen< typename viennacl::traits::tag
                               typename VectorT1::RealScalar>::type
 inner_prod(VectorT1 const & v1, VectorT2 const & v2)
 {
-  //std::cout << "eigen .. " << std::endl;
+  //Rcpp::Rcout << "eigen .. " << std::endl;
   return v1.dot(v2);
 }
 #endif
@@ -72,7 +73,7 @@ typename viennacl::enable_if< viennacl::is_mtl4< typename viennacl::traits::tag_
                               typename VectorT1::value_type>::type
 inner_prod(VectorT1 const & v1, VectorT2 const & v2)
 {
-  //std::cout << "mtl4 .. " << std::endl;
+  //Rcpp::Rcout << "mtl4 .. " << std::endl;
   return mtl::dot(v1, v2);
 }
 #endif
@@ -86,7 +87,7 @@ typename viennacl::enable_if< viennacl::is_ublas< typename viennacl::traits::tag
                               typename VectorT1::value_type>::type
 inner_prod(VectorT1 const & v1, VectorT2 const & v2)
 {
-  //std::cout << "ublas .. " << std::endl;
+  //Rcpp::Rcout << "ublas .. " << std::endl;
   return boost::numeric::ublas::inner_prod(v1, v2);
 }
 #endif
@@ -100,7 +101,7 @@ typename viennacl::enable_if< viennacl::is_stl< typename viennacl::traits::tag_o
 inner_prod(VectorT1 const & v1, VectorT2 const & v2)
 {
   assert(v1.size() == v2.size() && bool("Vector sizes mismatch"));
-  //std::cout << "stl .. " << std::endl;
+  //Rcpp::Rcout << "stl .. " << std::endl;
   typename VectorT1::value_type result = 0;
   for (typename VectorT1::size_type i=0; i<v1.size(); ++i)
     result += v1[i] * v2[i];
@@ -116,7 +117,7 @@ viennacl::scalar_expression< const vector_base<NumericT>, const vector_base<Nume
 inner_prod(vector_base<NumericT> const & vector1,
            vector_base<NumericT> const & vector2)
 {
-  //std::cout << "viennacl .. " << std::endl;
+  //Rcpp::Rcout << "viennacl .. " << std::endl;
   return viennacl::scalar_expression< const vector_base<NumericT>,
                                       const vector_base<NumericT>,
                                       viennacl::op_inner_prod >(vector1, vector2);
@@ -131,7 +132,7 @@ viennacl::scalar_expression< const viennacl::vector_expression<LHS, RHS, OP>,
 inner_prod(viennacl::vector_expression<LHS, RHS, OP> const & vector1,
            vector_base<NumericT> const & vector2)
 {
-  //std::cout << "viennacl .. " << std::endl;
+  //Rcpp::Rcout << "viennacl .. " << std::endl;
   return viennacl::scalar_expression< const viennacl::vector_expression<LHS, RHS, OP>,
                                       const vector_base<NumericT>,
                                       viennacl::op_inner_prod >(vector1, vector2);
@@ -145,7 +146,7 @@ viennacl::scalar_expression< const vector_base<NumericT>,
 inner_prod(vector_base<NumericT> const & vector1,
            viennacl::vector_expression<LHS, RHS, OP> const & vector2)
 {
-  //std::cout << "viennacl .. " << std::endl;
+  //Rcpp::Rcout << "viennacl .. " << std::endl;
   return viennacl::scalar_expression< const vector_base<NumericT>,
                                       const viennacl::vector_expression<LHS, RHS, OP>,
                                       viennacl::op_inner_prod >(vector1, vector2);
@@ -160,7 +161,7 @@ viennacl::scalar_expression< const viennacl::vector_expression<LHS1, RHS1, OP1>,
 inner_prod(viennacl::vector_expression<LHS1, RHS1, OP1> const & vector1,
            viennacl::vector_expression<LHS2, RHS2, OP2> const & vector2)
 {
-  //std::cout << "viennacl .. " << std::endl;
+  //Rcpp::Rcout << "viennacl .. " << std::endl;
   return viennacl::scalar_expression< const viennacl::vector_expression<LHS1, RHS1, OP1>,
                                       const viennacl::vector_expression<LHS2, RHS2, OP2>,
                                       viennacl::op_inner_prod >(vector1, vector2);

@@ -28,6 +28,7 @@
 #include "viennacl/meta/enable_if.hpp"
 #include "viennacl/meta/tag_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //
@@ -59,7 +60,7 @@ namespace viennacl
     template< typename T, typename A >
     T norm_inf(std::vector<T, A> const & v1)
     {
-      //std::cout << "stl .. " << std::endl;
+      //Rcpp::Rcout << "stl .. " << std::endl;
       T result = 0;
       for (typename std::vector<T, A>::size_type i=0; i<v1.size(); ++i)
       {
@@ -79,7 +80,7 @@ namespace viennacl
                                  viennacl::op_norm_inf >
     norm_inf(viennacl::vector_base<ScalarType> const & v1)
     {
-       //std::cout << "viennacl .. " << std::endl;
+       //Rcpp::Rcout << "viennacl .. " << std::endl;
       return viennacl::scalar_expression< const viennacl::vector_base<ScalarType>,
                                           const viennacl::vector_base<ScalarType>,
                                           viennacl::op_norm_inf >(v1, v1);

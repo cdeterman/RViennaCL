@@ -1,7 +1,7 @@
 Package: RViennaCL
 Type: Package
 Title: ViennaCL C++ Header Files
-Version: 1.7.0-0
+Version: 1.7.0-1
 Date: 2015-10-30
 Author: Charles Determan Jr.
 Maintainer: Charles Determan Jr <cdetermanjr@gmail.com>

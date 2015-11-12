@@ -49,6 +49,7 @@
   #include "viennacl/linalg/cuda/bisect_kernel_calls.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

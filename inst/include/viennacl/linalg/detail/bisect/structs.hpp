@@ -39,6 +39,7 @@
 #include "viennacl/vector.hpp"
 #include "viennacl/matrix.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

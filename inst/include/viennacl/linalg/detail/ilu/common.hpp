@@ -35,6 +35,7 @@
 #include "viennacl/linalg/host_based/common.hpp"
 #include "viennacl/linalg/misc_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -89,16 +90,16 @@ void level_scheduling_setup_impl(viennacl::compressed_matrix<NumericT, Alignment
     max_elimination_runs = std::max<vcl_size_t>(max_elimination_runs, elimination_index + 1);
   }
 
-  //std::cout << "Number of elimination runs: " << max_elimination_runs << std::endl;
+  //Rcpp::Rcout << "Number of elimination runs: " << max_elimination_runs << std::endl;
 
   //
   // Step 2: Build row-major elimination matrix for each elimination step
   //
 
-  //std::cout << "Elimination order: " << std::endl;
+  //Rcpp::Rcout << "Elimination order: " << std::endl;
   //for (vcl_size_t i=0; i<row_elimination.size(); ++i)
-  //  std::cout << row_elimination[i] << ", ";
-  //std::cout << std::endl;
+  //  Rcpp::Rcout << row_elimination[i] << ", ";
+  //Rcpp::Rcout << std::endl;
 
   //vcl_size_t summed_rows = 0;
   for (vcl_size_t elimination_run = 1; elimination_run <= max_elimination_runs; ++elimination_run)
@@ -114,8 +115,8 @@ void level_scheduling_setup_impl(viennacl::compressed_matrix<NumericT, Alignment
                                                         ++it)
       num_entries += it->second;
 
-    //std::cout << "num_entries: " << num_entries << std::endl;
-    //std::cout << "num_tainted_cols: " << num_tainted_cols << std::endl;
+    //Rcpp::Rcout << "num_entries: " << num_entries << std::endl;
+    //Rcpp::Rcout << "num_tainted_cols: " << num_tainted_cols << std::endl;
 
     if (num_tainted_cols > 0)
     {
@@ -178,12 +179,12 @@ void level_scheduling_setup_impl(viennacl::compressed_matrix<NumericT, Alignment
     }
 
     // Print some info:
-    //std::cout << "Eliminated columns in run " << elimination_run << ": " << num_tainted_cols << " (tainted columns: " << num_tainted_cols << ")" << std::endl;
+    //Rcpp::Rcout << "Eliminated columns in run " << elimination_run << ": " << num_tainted_cols << " (tainted columns: " << num_tainted_cols << ")" << std::endl;
     //summed_rows += eliminated_rows_in_run;
     //if (eliminated_rows_in_run == 0)
     //  break;
   }
-  //std::cout << "Eliminated rows: " << summed_rows << " out of " << row_elimination.size() << std::endl;
+  //Rcpp::Rcout << "Eliminated rows: " << summed_rows << " out of " << row_elimination.size() << std::endl;
 }
 
 

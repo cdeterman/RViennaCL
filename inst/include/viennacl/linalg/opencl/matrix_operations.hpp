@@ -47,6 +47,7 @@
 
 #include "viennacl/linalg/opencl/kernels/matrix.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

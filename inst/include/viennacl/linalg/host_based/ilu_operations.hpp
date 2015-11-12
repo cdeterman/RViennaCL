@@ -42,6 +42,7 @@
   #define VIENNACL_OPENMP_ILU_MIN_SIZE  5000
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -477,7 +478,7 @@ void ilu_transpose(compressed_matrix<NumericT> const & A,
 
   for (unsigned int row = 0; row < static_cast<unsigned int>(A.size1()); ++row)
   {
-    //std::cout << "Row " << row << ": ";
+    //Rcpp::Rcout << "Row " << row << ": ";
     unsigned int row_start = A_row_buffer[row];
     unsigned int row_stop  = A_row_buffer[row+1];
 
@@ -661,7 +662,7 @@ void ilu_form_neumann_matrix(compressed_matrix<NumericT> & R,
       R_elements[j] /= -diag;
   }
 
-  //std::cout << "diag_R: " << diag_R << std::endl;
+  //Rcpp::Rcout << "diag_R: " << diag_R << std::endl;
 }
 
 } //namespace host_based

@@ -26,6 +26,7 @@
 
 #include <stddef.h>
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace ocl

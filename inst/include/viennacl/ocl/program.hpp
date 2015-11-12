@@ -29,6 +29,7 @@
 #include "viennacl/ocl/kernel.hpp"
 #include "viennacl/tools/shared_ptr.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl

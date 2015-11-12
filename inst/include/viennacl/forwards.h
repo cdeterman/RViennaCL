@@ -70,6 +70,7 @@
 #include "viennacl/version.hpp"
 
 /** @brief Main namespace in ViennaCL. Holds all the basic types such as vector, matrix, etc. and defines operations upon them. */
+#include <Rcpp.h>
 namespace viennacl
 {
   typedef std::size_t                                       vcl_size_t;

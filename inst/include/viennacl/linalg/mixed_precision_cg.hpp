@@ -37,6 +37,7 @@
 
 #include "viennacl/vector_proxy.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg
@@ -98,7 +99,7 @@ namespace viennacl
       //typedef typename VectorType::value_type      ScalarType;
       typedef typename viennacl::result_of::cpu_value_type<VectorType>::type    CPU_ScalarType;
 
-      //std::cout << "Starting CG" << std::endl;
+      //Rcpp::Rcout << "Starting CG" << std::endl;
       vcl_size_t problem_size = viennacl::traits::size(rhs);
       VectorType result(rhs);
       viennacl::traits::clear(result);

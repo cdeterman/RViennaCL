@@ -37,6 +37,7 @@
 #include "viennacl/meta/result_of.hpp"
 #include "viennacl/linalg/iterative_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -479,7 +480,7 @@ namespace detail
       p -= omega * tmp0;
       p = residual + beta * p;
 
-      //std::cout << "Rel. Residual in current step: " << std::sqrt(std::fabs(viennacl::linalg::inner_prod(residual, residual) / norm_rhs_host)) << std::endl;
+      //Rcpp::Rcout << "Rel. Residual in current step: " << std::sqrt(std::fabs(viennacl::linalg::inner_prod(residual, residual) / norm_rhs_host)) << std::endl;
     }
 
     //store last error estimate:

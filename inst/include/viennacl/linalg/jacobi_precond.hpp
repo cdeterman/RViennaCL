@@ -33,6 +33,7 @@
 
 #include <map>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

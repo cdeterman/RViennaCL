@@ -29,6 +29,7 @@
 #include "viennacl/scheduler/execute_scalar_assign.hpp"
 #include "viennacl/scheduler/execute_generic_dispatcher.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

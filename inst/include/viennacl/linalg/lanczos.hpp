@@ -35,6 +35,7 @@
 #include "viennacl/linalg/bisect.hpp"
 #include "viennacl/tools/random.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

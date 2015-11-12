@@ -34,6 +34,7 @@
 
 #include "viennacl/linalg/cuda/sparse_matrix_operations_solve.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -481,7 +482,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   unsigned int const * max_nnz_row_B_ptr = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(max_nnz_row_B.handle());
 
   unsigned int max_subwarp_size = 0;
-  //std::cout << "Scratchpad offsets: " << std::endl;
+  //Rcpp::Rcout << "Scratchpad offsets: " << std::endl;
   for (std::size_t i=0; i<subwarp_sizes.size(); ++i)
     max_subwarp_size = std::max(max_subwarp_size, subwarp_sizes_ptr[i]);
   unsigned int A_max_nnz_per_row = 0;
@@ -544,7 +545,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
     return;
   }
 
-  //std::cout << "Running RMerge with subwarp size " << max_subwarp_size << std::endl;
+  //Rcpp::Rcout << "Running RMerge with subwarp size " << max_subwarp_size << std::endl;
 
   subwarp_sizes.switch_memory_context(viennacl::traits::context(A));
   max_nnz_row_A.switch_memory_context(viennacl::traits::context(A));

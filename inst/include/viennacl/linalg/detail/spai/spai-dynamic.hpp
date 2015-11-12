@@ -64,6 +64,7 @@
 #include "viennacl/linalg/detail/spai/spai_tag.hpp"
 #include "viennacl/linalg/opencl/kernels/spai.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

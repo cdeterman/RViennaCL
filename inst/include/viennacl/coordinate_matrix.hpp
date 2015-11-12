@@ -31,6 +31,7 @@
 
 #include "viennacl/linalg/sparse_matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 
@@ -91,9 +92,9 @@ void copy(const CPUMatrixT & cpu_matrix,
     group_boundaries.set(group_num, data_index);
     //group_boundaries[1] = data_index; //for one compute unit
 
-    //std::cout << "Group boundaries: " << std::endl;
+    //Rcpp::Rcout << "Group boundaries: " << std::endl;
     //for (vcl_size_t i=0; i<group_boundaries.size(); ++i)
-    //  std::cout << group_boundaries[i] << std::endl;
+    //  Rcpp::Rcout << group_boundaries[i] << std::endl;
 
     viennacl::backend::memory_create(gpu_matrix.group_boundaries_, group_boundaries.raw_size(), traits::context(gpu_matrix.group_boundaries_), group_boundaries.get());
     viennacl::backend::memory_create(gpu_matrix.coord_buffer_,         coord_buffer.raw_size(), traits::context(gpu_matrix.coord_buffer_),     coord_buffer.get());
@@ -136,7 +137,7 @@ void copy(const coordinate_matrix<NumericT, AlignmentV> & gpu_matrix,
     viennacl::backend::typesafe_host_array<unsigned int> coord_buffer(gpu_matrix.handle12(), 2*gpu_matrix.nnz());
     std::vector<NumericT> elements(gpu_matrix.nnz());
 
-    //std::cout << "GPU nonzeros: " << gpu_matrix.nnz() << std::endl;
+    //Rcpp::Rcout << "GPU nonzeros: " << gpu_matrix.nnz() << std::endl;
 
     viennacl::backend::memory_read(gpu_matrix.handle12(), 0, coord_buffer.raw_size(), coord_buffer.get());
     viennacl::backend::memory_read(gpu_matrix.handle(),   0, sizeof(NumericT) * elements.size(), &(elements[0]));
@@ -297,7 +298,7 @@ public:
 
       stl_sparse_matrix.resize(new_size1);
 
-      //std::cout << "Cropping STL matrix of size " << stl_sparse_matrix.size() << std::endl;
+      //Rcpp::Rcout << "Cropping STL matrix of size " << stl_sparse_matrix.size() << std::endl;
       if (new_size2 < cols_ && rows_ > 0)
       {
         for (vcl_size_t i=0; i<stl_sparse_matrix.size(); ++i)
@@ -314,7 +315,7 @@ public:
           for (std::list<unsigned int>::iterator it = to_delete.begin(); it != to_delete.end(); ++it)
             stl_sparse_matrix[i].erase(*it);
         }
-        //std::cout << "Cropping done..." << std::endl;
+        //Rcpp::Rcout << "Cropping done..." << std::endl;
       }
 
       rows_ = new_size1;

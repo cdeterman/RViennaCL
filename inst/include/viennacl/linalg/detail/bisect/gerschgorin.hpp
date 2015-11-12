@@ -36,6 +36,7 @@
 #include "viennacl/linalg/detail/bisect/util.hpp"
 #include "viennacl/vector.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

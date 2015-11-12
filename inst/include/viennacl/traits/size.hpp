@@ -50,6 +50,7 @@
 #include <vector>
 #include <map>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace traits

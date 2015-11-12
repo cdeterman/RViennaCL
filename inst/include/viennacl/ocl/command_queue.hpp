@@ -34,6 +34,7 @@
 #include "viennacl/ocl/device.hpp"
 #include "viennacl/ocl/handle.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl

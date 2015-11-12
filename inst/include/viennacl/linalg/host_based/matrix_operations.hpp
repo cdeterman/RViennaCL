@@ -38,6 +38,7 @@
 #include "viennacl/linalg/host_based/common.hpp"
 #include "viennacl/linalg/prod.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

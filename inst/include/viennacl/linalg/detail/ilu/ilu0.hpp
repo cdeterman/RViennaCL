@@ -48,6 +48,7 @@
 
 #include <map>
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg
@@ -151,9 +152,9 @@ public:
   ilu0_precond(MatrixT const & mat, ilu0_tag const & tag) : tag_(tag), LU_()
   {
     //initialize preconditioner:
-    //std::cout << "Start CPU precond" << std::endl;
+    //Rcpp::Rcout << "Start CPU precond" << std::endl;
     init(mat);
-    //std::cout << "End CPU precond" << std::endl;
+    //Rcpp::Rcout << "End CPU precond" << std::endl;
   }
 
   template<typename VectorT>
@@ -197,9 +198,9 @@ public:
       LU_(mat.size1(), mat.size2(), viennacl::traits::context(mat))
   {
     //initialize preconditioner:
-    //std::cout << "Start GPU precond" << std::endl;
+    //Rcpp::Rcout << "Start GPU precond" << std::endl;
     init(mat);
-    //std::cout << "End GPU precond" << std::endl;
+    //Rcpp::Rcout << "End GPU precond" << std::endl;
   }
 
   void apply(viennacl::vector<NumericT> & vec) const
@@ -209,7 +210,7 @@ public:
     {
       if (tag_.use_level_scheduling())
       {
-        //std::cout << "Using multifrontal on GPU..." << std::endl;
+        //Rcpp::Rcout << "Using multifrontal on GPU..." << std::endl;
         detail::level_scheduling_substitute(vec,
                                             multifrontal_L_row_index_arrays_,
                                             multifrontal_L_row_buffers_,
@@ -239,7 +240,7 @@ public:
     {
       if (tag_.use_level_scheduling())
       {
-        //std::cout << "Using multifrontal..." << std::endl;
+        //Rcpp::Rcout << "Using multifrontal..." << std::endl;
         detail::level_scheduling_substitute(vec,
                                             multifrontal_L_row_index_arrays_,
                                             multifrontal_L_row_buffers_,

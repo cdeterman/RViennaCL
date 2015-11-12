@@ -31,6 +31,7 @@
 
 #include "viennacl/linalg/sparse_matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief Sparse matrix class using a hybrid format composed of the ELL and CSR format for storing the nonzeros. */
@@ -284,7 +285,7 @@ void copy(const hyb_matrix<NumericT, AlignmentV>& gpu_matrix, CPUMatrixT& cpu_ma
 
         if (ell_coords[offset] >= gpu_matrix.size2())
         {
-          std::cerr << "ViennaCL encountered invalid data " << offset << " " << ind << " " << row << " " << ell_coords[offset] << " " << gpu_matrix.size2() << std::endl;
+          Rcpp::Rcerr << "ViennaCL encountered invalid data " << offset << " " << ind << " " << row << " " << ell_coords[offset] << " " << gpu_matrix.size2() << std::endl;
           return;
         }
 
@@ -299,7 +300,7 @@ void copy(const hyb_matrix<NumericT, AlignmentV>& gpu_matrix, CPUMatrixT& cpu_ma
 
         if (csr_cols[ind] >= gpu_matrix.size2())
         {
-          std::cerr << "ViennaCL encountered invalid data " << std::endl;
+          Rcpp::Rcerr << "ViennaCL encountered invalid data " << std::endl;
           return;
         }
 

@@ -39,6 +39,7 @@
 
 #include "viennacl/scheduler/io.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

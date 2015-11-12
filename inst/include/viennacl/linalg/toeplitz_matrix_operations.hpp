@@ -29,6 +29,7 @@
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/fft.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg

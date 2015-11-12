@@ -32,6 +32,7 @@
 #include "viennacl/scheduler/execute_matrix_prod.hpp"
 #include "viennacl/scheduler/execute_util.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace scheduler

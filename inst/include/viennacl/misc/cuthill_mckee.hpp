@@ -37,6 +37,7 @@
 
 #include "viennacl/forwards.h"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace detail

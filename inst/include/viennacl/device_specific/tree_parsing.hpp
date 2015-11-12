@@ -33,6 +33,7 @@
 #include "viennacl/device_specific/utils.hpp"
 #include "viennacl/device_specific/mapped_objects.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

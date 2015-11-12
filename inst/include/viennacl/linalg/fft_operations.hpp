@@ -36,6 +36,7 @@
 #include "viennacl/linalg/cuda/fft_operations.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

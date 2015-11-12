@@ -26,6 +26,7 @@
 #include "viennacl/ocl/context.hpp"
 #include "viennacl/ocl/enqueue.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl
@@ -51,7 +52,7 @@ public:
     if (!initialized_[id])
     {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Initializing context no. " << id << std::endl;
+      Rcpp::Rcout << "ViennaCL: Initializing context no. " << id << std::endl;
 #endif
 
       contexts_[id].init();
@@ -62,8 +63,8 @@ public:
       initialized_[id] = true;
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Context no. " << id << " initialized with " << devices.size() << " devices" << std::endl;
-      std::cout << "ViennaCL: Device id: " << devices[0].id() << std::endl;
+      Rcpp::Rcout << "ViennaCL: Context no. " << id << " initialized with " << devices.size() << " devices" << std::endl;
+      Rcpp::Rcout << "ViennaCL: Device id: " << devices[0].id() << std::endl;
 #endif
     }
     return contexts_[id];
@@ -73,7 +74,7 @@ public:
   static viennacl::ocl::context & current_context()
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting current_context with id " << current_context_id_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting current_context with id " << current_context_id_ << std::endl;
 #endif
 #if defined(VIENNACL_NO_CURRENT_CONTEXT)
     assert(false && bool("ViennaCL: current_context called when disabled"));
@@ -96,7 +97,7 @@ public:
                             std::vector<cl_device_id> const & devices)
   {
     if (initialized_[i])
-      std::cerr << "ViennaCL: Warning in init_context(): Providing a list of devices has no effect, because context for ViennaCL is already created!" << std::endl;
+      Rcpp::Rcerr << "ViennaCL: Warning in init_context(): Providing a list of devices has no effect, because context for ViennaCL is already created!" << std::endl;
     else
     {
       //set devices for context:
@@ -120,7 +121,7 @@ public:
     assert(devices.size() == queues.size() && bool("ViennaCL expects one queue per device!"));
 
     if (initialized_[i])
-      std::cerr << "ViennaCL: Warning in init_context(): Providing a list of devices has no effect, because context for ViennaCL is already created!" << std::endl;
+      Rcpp::Rcerr << "ViennaCL: Warning in init_context(): Providing a list of devices has no effect, because context for ViennaCL is already created!" << std::endl;
     else
     {
       //set devices for context:
@@ -168,8 +169,8 @@ public:
   static void add_context(long i, viennacl::ocl::context& c)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Adding context '" << c.handle() << "' as id " << i << std::endl;
-    std::cout << "ViennaCL: There are " << c.program_num() << " programs" << std::endl;
+    Rcpp::Rcout << "ViennaCL: Adding context '" << c.handle() << "' as id " << i << std::endl;
+    Rcpp::Rcout << "ViennaCL: There are " << c.program_num() << " programs" << std::endl;
 #endif
     contexts_[i] = c;
     initialized_[i] = true;

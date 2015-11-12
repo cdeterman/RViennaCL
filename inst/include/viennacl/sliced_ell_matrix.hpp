@@ -32,6 +32,7 @@
 
 #include "viennacl/linalg/sparse_matrix_operations.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 /** @brief Sparse matrix class using the sliced ELLPACK with parameters C, \f$ \sigma \f$
@@ -255,7 +256,7 @@ void copy(sliced_ell_matrix<ScalarT, IndexT> const & gpu_matrix, CPUMatrixT & cp
 
         if (coords[offset] >= gpu_matrix.size2())
         {
-            std::cerr << "ViennaCL encountered invalid data " << offset << " " << ind << " " << row << " " << coords[offset] << " " << gpu_matrix.size2() << std::endl;
+            Rcpp::Rcerr << "ViennaCL encountered invalid data " << offset << " " << ind << " " << row << " " << coords[offset] << " " << gpu_matrix.size2() << std::endl;
             return;
         }
 

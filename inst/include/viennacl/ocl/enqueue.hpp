@@ -33,6 +33,7 @@
 #include "viennacl/ocl/command_queue.hpp"
 #include "viennacl/ocl/context.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 
@@ -57,9 +58,9 @@ void enqueue(KernelType & k, viennacl::ocl::command_queue const & queue)
   if (k.local_work_size(1) == 0)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-    std::cout << "ViennaCL: Starting 1D-kernel '" << k.name() << "'..." << std::endl;
-    std::cout << "ViennaCL: Global work size: '"  << k.global_work_size() << "'..." << std::endl;
-    std::cout << "ViennaCL: Local work size: '"   << k.local_work_size() << "'..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Starting 1D-kernel '" << k.name() << "'..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Global work size: '"  << k.global_work_size() << "'..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Local work size: '"   << k.local_work_size() << "'..." << std::endl;
 #endif
 
     vcl_size_t tmp_global = k.global_work_size();
@@ -81,17 +82,17 @@ void enqueue(KernelType & k, viennacl::ocl::command_queue const & queue)
 
     if (err != CL_SUCCESS)
     {
-//      std::cerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
-//      std::cerr << "ViennaCL: Smaller work sizes could not solve the problem. " << std::endl;
+      Rcpp::Rcerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
+      Rcpp::Rcerr << "ViennaCL: Smaller work sizes could not solve the problem. " << std::endl;
       VIENNACL_ERR_CHECK(err);
     }
   }
   else //2D or 3D kernel
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_KERNEL)
-    std::cout << "ViennaCL: Starting 2D/3D-kernel '" << k.name() << "'..." << std::endl;
-    std::cout << "ViennaCL: Global work size: '"  << k.global_work_size(0) << ", " << k.global_work_size(1) << ", " << k.global_work_size(2) << "'..." << std::endl;
-    std::cout << "ViennaCL: Local work size: '"   << k.local_work_size(0) << ", " << k.local_work_size(1) << ", " << k.local_work_size(2) << "'..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Starting 2D/3D-kernel '" << k.name() << "'..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Global work size: '"  << k.global_work_size(0) << ", " << k.global_work_size(1) << ", " << k.global_work_size(2) << "'..." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Local work size: '"   << k.local_work_size(0) << ", " << k.local_work_size(1) << ", " << k.local_work_size(2) << "'..." << std::endl;
 #endif
 
     vcl_size_t tmp_global[3];
@@ -112,7 +113,7 @@ void enqueue(KernelType & k, viennacl::ocl::command_queue const & queue)
     if (err != CL_SUCCESS)
     {
       //could not start kernel with any parameters
-//      std::cerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
+      Rcpp::Rcerr << "ViennaCL: FATAL ERROR: Kernel start failed for '" << k.name() << "'." << std::endl;
       VIENNACL_ERR_CHECK(err);
     }
   }
@@ -121,7 +122,7 @@ void enqueue(KernelType & k, viennacl::ocl::command_queue const & queue)
   queue.finish();
   cl_int execution_status;
   clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &execution_status, NULL);
-  std::cout << "ViennaCL: Kernel " << k.name() << " finished with status " << execution_status << "!" << std::endl;
+  Rcpp::Rcout << "ViennaCL: Kernel " << k.name() << " finished with status " << execution_status << "!" << std::endl;
 #endif
 } //enqueue()
 

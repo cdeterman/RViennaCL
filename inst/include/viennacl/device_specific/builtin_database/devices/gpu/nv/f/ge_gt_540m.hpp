@@ -29,6 +29,7 @@
 #include "viennacl/device_specific/forwards.h"
 #include "viennacl/device_specific/builtin_database/common.hpp"
 
+#include <Rcpp.h>
 namespace viennacl{
 namespace device_specific{
 namespace builtin_database{

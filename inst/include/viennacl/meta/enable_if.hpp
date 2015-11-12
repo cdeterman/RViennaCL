@@ -22,6 +22,7 @@
     @brief Simple enable-if variant that uses the SFINAE pattern
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

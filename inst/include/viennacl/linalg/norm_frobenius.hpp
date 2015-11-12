@@ -28,6 +28,7 @@
 #include "viennacl/meta/enable_if.hpp"
 #include "viennacl/meta/tag_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //

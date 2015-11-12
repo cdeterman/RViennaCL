@@ -27,6 +27,7 @@
 #include "viennacl/misc/gibbs_poole_stockmeyer.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //TODO: Add convenience overload here. Which should be default?

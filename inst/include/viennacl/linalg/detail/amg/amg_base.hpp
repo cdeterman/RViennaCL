@@ -37,6 +37,7 @@
 
 #include "viennacl/context.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

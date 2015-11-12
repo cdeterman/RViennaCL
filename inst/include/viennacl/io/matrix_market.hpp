@@ -35,6 +35,7 @@
 #include "viennacl/traits/size.hpp"
 #include "viennacl/traits/fill.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace io
@@ -105,7 +106,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
 {
   typedef typename viennacl::result_of::cpu_value_type<typename viennacl::result_of::value_type<MatrixT>::type>::type    ScalarT;
 
-  //std::cout << "Reading matrix market file" << std::endl;
+  //Rcpp::Rcout << "Reading matrix market file" << std::endl;
   char buffer[1025];
   std::ifstream reader(file);
   std::string token;
@@ -122,7 +123,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
 
 
   if (!reader){
-    std::cerr << "ViennaCL: Matrix Market Reader: Cannot open file " << file << std::endl;
+    Rcpp::Rcerr << "ViennaCL: Matrix Market Reader: Cannot open file " << file << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -146,14 +147,14 @@ long read_matrix_market_file_impl(MatrixT & mat,
         line >> token;
         if (detail::tolower(token) != "matrixmarket")
         {
-          std::cerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": Expected 'MatrixMarket', got '" << token << "'" << std::endl;
+          Rcpp::Rcerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": Expected 'MatrixMarket', got '" << token << "'" << std::endl;
           return 0;
         }
 
         line >> token;
         if (detail::tolower(token) != "matrix")
         {
-          std::cerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": Expected 'matrix', got '" << token << "'" << std::endl;
+          Rcpp::Rcerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": Expected 'matrix', got '" << token << "'" << std::endl;
           return 0;
         }
 
@@ -163,12 +164,12 @@ long read_matrix_market_file_impl(MatrixT & mat,
           if (detail::tolower(token) == "array")
           {
             dense_format = true;
-            std::cerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": 'array' type is not supported yet!" << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": 'array' type is not supported yet!" << std::endl;
             return 0;
           }
           else
           {
-            std::cerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": Expected 'array' or 'coordinate', got '" << token << "'" << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << " at line " << linenum << " in file " << file << ": Expected 'array' or 'coordinate', got '" << token << "'" << std::endl;
             return 0;
           }
         }
@@ -184,7 +185,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
         }
         else if (detail::tolower(token) != "real")
         {
-          std::cerr << "Error in file " << file << ": The MatrixMarket reader provided with ViennaCL supports only real valued floating point arithmetic or pattern type matrices." << std::endl;
+          Rcpp::Rcerr << "Error in file " << file << ": The MatrixMarket reader provided with ViennaCL supports only real valued floating point arithmetic or pattern type matrices." << std::endl;
           return 0;
         }
 
@@ -193,7 +194,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
         else if (detail::tolower(token) == "symmetric"){ symmetric = true; }
         else
         {
-          std::cerr << "Error in file " << file << ": The MatrixMarket reader provided with ViennaCL supports only general or symmetric matrices." << std::endl;
+          Rcpp::Rcerr << "Error in file " << file << ": The MatrixMarket reader provided with ViennaCL supports only general or symmetric matrices." << std::endl;
           return 0;
         }
 
@@ -214,7 +215,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
           line >> rows;
         else
         {
-          std::cerr << "Error in file " << file << ": Could not get matrix dimensions (rows) in line " << linenum << std::endl;
+          Rcpp::Rcerr << "Error in file " << file << ": Could not get matrix dimensions (rows) in line " << linenum << std::endl;
           return 0;
         }
 
@@ -222,7 +223,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
           line >> cols;
         else
         {
-          std::cerr << "Error in file " << file << ": Could not get matrix dimensions (columns) in line " << linenum << std::endl;
+          Rcpp::Rcerr << "Error in file " << file << ": Could not get matrix dimensions (columns) in line " << linenum << std::endl;
           return 0;
         }
         if (!dense_format)
@@ -231,7 +232,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
             line >> nnz;
           else
           {
-            std::cerr << "Error in file " << file << ": Could not get matrix dimensions (columns) in line " << linenum << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << ": Could not get matrix dimensions (columns) in line " << linenum << std::endl;
             return 0;
           }
         }
@@ -268,7 +269,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
             line >> row;
           else
           {
-            std::cerr << "Error in file " << file << ": Parse error for matrix row entry in line " << linenum << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << ": Parse error for matrix row entry in line " << linenum << std::endl;
             return 0;
           }
 
@@ -276,7 +277,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
             line >> col;
           else
           {
-            std::cerr << "Error in file " << file << ": Parse error for matrix col entry in line " << linenum << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << ": Parse error for matrix col entry in line " << linenum << std::endl;
             return 0;
           }
 
@@ -292,20 +293,20 @@ long read_matrix_market_file_impl(MatrixT & mat,
             }
             else
             {
-              std::cerr << "Error in file " << file << ": Parse error for matrix entry in line " << linenum << std::endl;
+              Rcpp::Rcerr << "Error in file " << file << ": Parse error for matrix entry in line " << linenum << std::endl;
               return 0;
             }
           }
 
           if (row >= static_cast<long>(viennacl::traits::size1(mat)) || row < 0)
           {
-            std::cerr << "Error in file " << file << " at line " << linenum << ": Row index out of bounds: " << row << " (matrix dim: " << viennacl::traits::size1(mat) << " x " << viennacl::traits::size2(mat) << ")" << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << " at line " << linenum << ": Row index out of bounds: " << row << " (matrix dim: " << viennacl::traits::size1(mat) << " x " << viennacl::traits::size2(mat) << ")" << std::endl;
             return 0;
           }
 
           if (col >= static_cast<long>(viennacl::traits::size2(mat)) || col < 0)
           {
-            std::cerr << "Error in file " << file << " at line " << linenum << ": Column index out of bounds: " << col << " (matrix dim: " << viennacl::traits::size1(mat) << " x " << viennacl::traits::size2(mat) << ")" << std::endl;
+            Rcpp::Rcerr << "Error in file " << file << " at line " << linenum << ": Column index out of bounds: " << col << " (matrix dim: " << viennacl::traits::size1(mat) << " x " << viennacl::traits::size2(mat) << ")" << std::endl;
             return 0;
           }
 
@@ -321,7 +322,7 @@ long read_matrix_market_file_impl(MatrixT & mat,
     }
   }
 
-  //std::cout << linenum << " lines read." << std::endl;
+  //Rcpp::Rcout << linenum << " lines read." << std::endl;
   reader.close();
   return linenum;
 }

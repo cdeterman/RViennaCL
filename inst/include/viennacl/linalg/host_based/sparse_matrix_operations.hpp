@@ -37,6 +37,7 @@
 #include <omp.h>
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

@@ -42,6 +42,7 @@
 #include "viennacl/linalg/prod.hpp"
 #include "viennacl/range.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg

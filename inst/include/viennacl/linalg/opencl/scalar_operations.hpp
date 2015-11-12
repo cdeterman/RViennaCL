@@ -38,6 +38,7 @@
 #include "viennacl/traits/stride.hpp"
 #include "viennacl/traits/handle.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

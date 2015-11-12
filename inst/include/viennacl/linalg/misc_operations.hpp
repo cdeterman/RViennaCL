@@ -37,6 +37,7 @@
   #include "viennacl/linalg/cuda/misc_operations.hpp"
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg

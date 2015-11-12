@@ -47,6 +47,7 @@
 #include <boost/numeric/mtl/mtl.hpp>
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 

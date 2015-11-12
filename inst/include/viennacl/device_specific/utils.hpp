@@ -39,6 +39,7 @@
 
 #include "viennacl/tools/tools.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace device_specific

@@ -30,6 +30,7 @@
 #include "viennacl/linalg/prod.hpp"
 #include "viennacl/linalg/norm_2.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   namespace linalg

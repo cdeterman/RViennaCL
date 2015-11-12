@@ -43,6 +43,7 @@
 #include "viennacl/ocl/command_queue.hpp"
 #include "viennacl/tools/sha1.hpp"
 #include "viennacl/tools/shared_ptr.hpp"
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace ocl
@@ -95,7 +96,7 @@ public:
   void default_device_type(cl_device_type dtype)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Setting new device type for context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Setting new device type for context " << h_ << std::endl;
 #endif
     if (!initialized_)
       device_type_ = dtype; //assume that the user provided a correct value
@@ -111,7 +112,7 @@ public:
   /** @brief Returns the current device */
   viennacl::ocl::device const & current_device() const
   {
-    //std::cout << "Current device id in context: " << current_device_id_ << std::endl;
+    //Rcpp::Rcout << "Current device id in context: " << current_device_id_ << std::endl;
     return devices_[current_device_id_];
   }
 
@@ -126,7 +127,7 @@ public:
   void switch_device(viennacl::ocl::device const & d)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Setting new current device for context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Setting new current device for context " << h_ << std::endl;
 #endif
     bool found = false;
     for (vcl_size_t i=0; i<devices_.size(); ++i)
@@ -138,8 +139,8 @@ public:
         break;
       }
     }
-//    if (found == false)
-//      std::cerr << "ViennaCL: Warning: Could not set device " << d.name() << " for context." << std::endl;
+    if (found == false)
+      Rcpp::Rcerr << "ViennaCL: Warning: Could not set device " << d.name() << " for context." << std::endl;
   }
 
   /** @brief Add a device to the context. Must be done before the context is initialized */
@@ -147,7 +148,7 @@ public:
   {
     assert(!initialized_ && bool("Device must be added to context before it is initialized!"));
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Adding new device to context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Adding new device to context " << h_ << std::endl;
 #endif
     if (std::find(devices_.begin(), devices_.end(), d) == devices_.end())
       devices_.push_back(d);
@@ -179,7 +180,7 @@ public:
     {
       assert(!initialized_ && bool("ViennaCL: FATAL error: Provided a new context for an already initialized context."));
       #i#if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Reusing existing context " << h_ << std::endl;
+      Rcpp::Rcout << "ViennaCL: Reusing existing context " << h_ << std::endl;
       #e#endif
       h_ = context_id;
     }*/
@@ -196,7 +197,7 @@ public:
   cl_mem create_memory_without_smart_handle(cl_mem_flags flags, unsigned int size, void * ptr = NULL) const
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Creating memory of size " << size << " for context " << h_ << " (unsafe, returning cl_mem directly)" << std::endl;
+    Rcpp::Rcout << "ViennaCL: Creating memory of size " << size << " for context " << h_ << " (unsafe, returning cl_mem directly)" << std::endl;
 #endif
     if (ptr)
       flags |= CL_MEM_COPY_HOST_PTR;
@@ -235,7 +236,7 @@ public:
   void add_queue(cl_device_id dev, cl_command_queue q)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Adding existing queue " << q << " for device " << dev << " to context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Adding existing queue " << q << " for device " << dev << " to context " << h_ << std::endl;
 #endif
     viennacl::ocl::handle<cl_command_queue> queue_handle(q, *this);
     queues_[dev].push_back(viennacl::ocl::command_queue(queue_handle));
@@ -246,7 +247,7 @@ public:
   void add_queue(cl_device_id dev)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Adding new queue for device " << dev << " to context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Adding new queue for device " << dev << " to context " << h_ << std::endl;
 #endif
       cl_int err;
 #ifdef VIENNACL_PROFILING_ENABLED
@@ -266,8 +267,8 @@ public:
   viennacl::ocl::command_queue & get_queue()
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting queue for device " << devices_[current_device_id_].name() << " in context " << h_ << std::endl;
-    std::cout << "ViennaCL: Current queue id " << current_queue_id_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting queue for device " << devices_[current_device_id_].name() << " in context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Current queue id " << current_queue_id_ << std::endl;
 #endif
 
     return queues_[devices_[current_device_id_].id()][current_queue_id_];
@@ -278,15 +279,15 @@ public:
     typedef std::map< cl_device_id, std::vector<viennacl::ocl::command_queue> >    QueueContainer;
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting const queue for device " << devices_[current_device_id_].name() << " in context " << h_ << std::endl;
-    std::cout << "ViennaCL: Current queue id " << current_queue_id_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting const queue for device " << devices_[current_device_id_].name() << " in context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Current queue id " << current_queue_id_ << std::endl;
 #endif
 
     // find queue:
     QueueContainer::const_iterator it = queues_.find(devices_[current_device_id_].id());
     if (it != queues_.end()) {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Queue handle " << (it->second)[current_queue_id_].handle() << std::endl;
+      Rcpp::Rcout << "ViennaCL: Queue handle " << (it->second)[current_queue_id_].handle() << std::endl;
 #endif
       return (it->second)[current_queue_id_];
     }
@@ -304,7 +305,7 @@ public:
       throw invalid_command_queue();
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting queue " << i << " for device " << dev << " in context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting queue " << i << " for device " << dev << " in context " << h_ << std::endl;
 #endif
     unsigned int device_index;
     for (device_index = 0; device_index < devices_.size(); ++device_index)
@@ -336,7 +337,7 @@ public:
   void switch_queue(viennacl::ocl::command_queue const & q)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Setting new current queue for context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Setting new current queue for context " << h_ << std::endl;
 #endif
     bool found = false;
     typedef std::map< cl_device_id, std::vector<viennacl::ocl::command_queue> >    QueueContainer;
@@ -358,8 +359,8 @@ public:
         }
       }
     }
-//    if (found == false)
-//      std::cerr << "ViennaCL: Warning: Could not set queue " << q.handle().get() << " for context." << std::endl;
+    if (found == false)
+      Rcpp::Rcerr << "ViennaCL: Warning: Could not set queue " << q.handle().get() << " for context." << std::endl;
   }
 
   /////////////////// create program ///////////////////////////////
@@ -369,7 +370,7 @@ public:
   {
     programs_.push_back(tools::shared_ptr<ocl::program>(new viennacl::ocl::program(p, *this, prog_name)));
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Adding program '" << prog_name << "' with cl_program to context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Adding program '" << prog_name << "' with cl_program to context " << h_ << std::endl;
 #endif
     return *programs_.back();
   }
@@ -383,7 +384,7 @@ public:
     cl_int err;
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Adding program '" << prog_name << "' with source to context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Adding program '" << prog_name << "' with source to context " << h_ << std::endl;
 #endif
 
     cl_program temp = 0;
@@ -394,7 +395,7 @@ public:
     if (cache_path_.size())
     {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Cache at " << cache_path_ << std::endl;
+      Rcpp::Rcout << "ViennaCL: Cache at " << cache_path_ << std::endl;
 #endif
 
       std::string prefix;
@@ -434,7 +435,7 @@ public:
     {
       cl_build_status status;
       clGetProgramBuildInfo(temp, devices_[0].id(), CL_PROGRAM_BUILD_STATUS, sizeof(cl_build_status), &status, NULL);
-//      std::cout << "Build Status = " << status << " ( Err = " << err << " )" << std::endl;
+      Rcpp::Rcout << "Build Status = " << status << " ( Err = " << err << " )" << std::endl;
 
       char *build_log;
       size_t ret_val_size; // don't use vcl_size_t here
@@ -442,10 +443,10 @@ public:
       build_log = new char[ret_val_size+1];
       err = clGetProgramBuildInfo(temp, devices_[0].id(), CL_PROGRAM_BUILD_LOG, ret_val_size, build_log, NULL);
       build_log[ret_val_size] = '\0';
-//      std::cout << "Log: " << build_log << std::endl;
+      Rcpp::Rcout << "Log: " << build_log << std::endl;
       delete[] build_log;
 
-//      std::cout << "Sources: " << source << std::endl;
+      Rcpp::Rcout << "Sources: " << source << std::endl;
     }
     VIENNACL_ERR_CHECK(err);
 
@@ -503,8 +504,8 @@ public:
     }
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Stored program '" << programs_.back()->name() << "' in context " << h_ << std::endl;
-    std::cout << "ViennaCL: There is/are " << programs_.size() << " program(s)" << std::endl;
+    Rcpp::Rcout << "ViennaCL: Stored program '" << programs_.back()->name() << "' in context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: There is/are " << programs_.size() << " program(s)" << std::endl;
 #endif
 
     return prog;
@@ -514,7 +515,7 @@ public:
   void delete_program(std::string const & name)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Deleting program '" << name << "' from context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: Deleting program '" << name << "' from context " << h_ << std::endl;
 #endif
     for (program_container_type::iterator it = programs_.begin();
          it != programs_.end();
@@ -532,18 +533,18 @@ public:
   viennacl::ocl::program & get_program(std::string const & name)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting program '" << name << "' from context " << h_ << std::endl;
-    std::cout << "ViennaCL: There are " << programs_.size() << " programs" << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting program '" << name << "' from context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: There are " << programs_.size() << " programs" << std::endl;
 #endif
     for (program_container_type::iterator it = programs_.begin();
          it != programs_.end();
          ++it)
     {
-      //std::cout << "Name: " << (*it)->name() << std::endl;
+      //Rcpp::Rcout << "Name: " << (*it)->name() << std::endl;
       if ((*it)->name() == name)
         return **it;
     }
-//    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
+    Rcpp::Rcerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
     throw program_not_found(name);
     //return programs_[0];  //return a defined object
   }
@@ -551,18 +552,18 @@ public:
   viennacl::ocl::program const & get_program(std::string const & name) const
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting program '" << name << "' from context " << h_ << std::endl;
-    std::cout << "ViennaCL: There are " << programs_.size() << " programs" << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting program '" << name << "' from context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: There are " << programs_.size() << " programs" << std::endl;
 #endif
     for (program_container_type::const_iterator it = programs_.begin();
          it != programs_.end();
          ++it)
     {
-      //std::cout << "Name: " << (*it)->name() << std::endl;
+      //Rcpp::Rcout << "Name: " << (*it)->name() << std::endl;
       if ((*it)->name() == name)
         return **it;
     }
-//    std::cerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
+    Rcpp::Rcerr << "ViennaCL: Could not find program '" << name << "'" << std::endl;
     throw program_not_found(name);
     //return programs_[0];  //return a defined object
   }
@@ -583,8 +584,8 @@ public:
   viennacl::ocl::program & get_program(vcl_size_t id)
   {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Getting program '" << id << "' from context " << h_ << std::endl;
-    std::cout << "ViennaCL: There are " << programs_.size() << " programs" << std::endl;
+    Rcpp::Rcout << "ViennaCL: Getting program '" << id << "' from context " << h_ << std::endl;
+    Rcpp::Rcout << "ViennaCL: There are " << programs_.size() << " programs" << std::endl;
 #endif
 
     if (id >= programs_.size())
@@ -644,7 +645,7 @@ private:
     assert(!initialized_ && bool("ViennaCL FATAL error: Context already created!"));
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Initializing new ViennaCL context." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Initializing new ViennaCL context." << std::endl;
 #endif
 
     cl_int err;
@@ -653,32 +654,32 @@ private:
     {
       //create an OpenCL context for the provided devices:
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Setting all devices for context..." << std::endl;
+      Rcpp::Rcout << "ViennaCL: Setting all devices for context..." << std::endl;
 #endif
 
       platform pf(pf_index_);
       std::vector<device> devices = pf.devices(device_type_);
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Number of devices for context: " << devices.size() << std::endl;
+      Rcpp::Rcout << "ViennaCL: Number of devices for context: " << devices.size() << std::endl;
 #endif
       vcl_size_t device_num = std::min<vcl_size_t>(default_device_num_, devices.size());
       for (vcl_size_t i=0; i<device_num; ++i)
         devices_.push_back(devices[i]);
 
-//      if (devices.size() == 0)
-//      {
-//        std::cerr << "ViennaCL: FATAL ERROR: No devices of type '";
-//        switch (device_type_)
-//        {
-//        case CL_DEVICE_TYPE_CPU:          std::cout << "CPU"; break;
-//        case CL_DEVICE_TYPE_GPU:          std::cout << "GPU"; break;
-//        case CL_DEVICE_TYPE_ACCELERATOR:  std::cout << "ACCELERATOR"; break;
-//        case CL_DEVICE_TYPE_DEFAULT:      std::cout << "DEFAULT"; break;
-//        default:
-//          std::cout << "UNKNOWN" << std::endl;
-//        }
-//        std::cout << "' found!" << std::endl;
-//      }
+      if (devices.size() == 0)
+      {
+        Rcpp::Rcerr << "ViennaCL: FATAL ERROR: No devices of type '";
+        switch (device_type_)
+        {
+        case CL_DEVICE_TYPE_CPU:          Rcpp::Rcout << "CPU"; break;
+        case CL_DEVICE_TYPE_GPU:          Rcpp::Rcout << "GPU"; break;
+        case CL_DEVICE_TYPE_ACCELERATOR:  Rcpp::Rcout << "ACCELERATOR"; break;
+        case CL_DEVICE_TYPE_DEFAULT:      Rcpp::Rcout << "DEFAULT"; break;
+        default:
+          Rcpp::Rcout << "UNKNOWN" << std::endl;
+        }
+        Rcpp::Rcout << "' found!" << std::endl;
+      }
     }
 
     //extract list of device ids:
@@ -695,7 +696,7 @@ private:
 
     initialized_ = true;
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Initialization of new ViennaCL context done." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Initialization of new ViennaCL context done." << std::endl;
 #endif
   }
 
@@ -704,7 +705,7 @@ private:
   {
     assert(!initialized_ && bool("ViennaCL FATAL error: Context already created!"));
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Initialization of ViennaCL context from existing context." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Initialization of ViennaCL context from existing context." << std::endl;
 #endif
 
     //set context handle:
@@ -726,7 +727,7 @@ private:
       num_devices = static_cast<cl_uint>(temp / sizeof(cl_device_id));
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-      std::cout << "ViennaCL: Reusing context with " << num_devices << " devices." << std::endl;
+      Rcpp::Rcout << "ViennaCL: Reusing context with " << num_devices << " devices." << std::endl;
 #endif
 
       std::vector<cl_device_id> device_ids(num_devices);
@@ -740,7 +741,7 @@ private:
 
     initialized_ = true;
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
-    std::cout << "ViennaCL: Initialization of ViennaCL context from existing context done." << std::endl;
+    Rcpp::Rcout << "ViennaCL: Initialization of ViennaCL context from existing context done." << std::endl;
 #endif
   }
 
@@ -772,7 +773,7 @@ inline viennacl::ocl::kernel & viennacl::ocl::program::add_kernel(cl_kernel kern
 /** @brief Returns the kernel with the provided name */
 inline viennacl::ocl::kernel & viennacl::ocl::program::get_kernel(std::string const & name)
 {
-  //std::cout << "Requiring kernel " << name << " from program " << name_ << std::endl;
+  //Rcpp::Rcout << "Requiring kernel " << name << " from program " << name_ << std::endl;
   for (kernel_container_type::iterator it = kernels_.begin();
        it != kernels_.end();
        ++it)
@@ -780,8 +781,8 @@ inline viennacl::ocl::kernel & viennacl::ocl::program::get_kernel(std::string co
     if ((*it)->name() == name)
       return **it;
   }
-//  std::cerr << "ViennaCL: FATAL ERROR: Could not find kernel '" << name << "' from program '" << name_ << "'" << std::endl;
-//  std::cout << "Number of kernels in program: " << kernels_.size() << std::endl;
+  Rcpp::Rcerr << "ViennaCL: FATAL ERROR: Could not find kernel '" << name << "' from program '" << name_ << "'" << std::endl;
+  Rcpp::Rcout << "Number of kernels in program: " << kernels_.size() << std::endl;
   throw kernel_not_found("Kernel not found");
   //return kernels_[0];  //return a defined object
 }

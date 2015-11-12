@@ -33,6 +33,7 @@
     SPAI code contributed by Nikolay Lukash
 */
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace linalg

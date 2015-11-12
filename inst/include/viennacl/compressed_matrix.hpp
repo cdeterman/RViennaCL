@@ -37,6 +37,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #endif
 
+#include <Rcpp.h>
 namespace viennacl
 {
 namespace detail
@@ -351,7 +352,7 @@ void copy(const compressed_matrix<NumericT, AlignmentV> & gpu_matrix,
     viennacl::backend::typesafe_host_array<unsigned int> col_buffer(gpu_matrix.handle2(), gpu_matrix.nnz());
     std::vector<NumericT> elements(gpu_matrix.nnz());
 
-    //std::cout << "GPU->CPU, nonzeros: " << gpu_matrix.nnz() << std::endl;
+    //Rcpp::Rcout << "GPU->CPU, nonzeros: " << gpu_matrix.nnz() << std::endl;
 
     viennacl::backend::memory_read(gpu_matrix.handle1(), 0, row_buffer.raw_size(), row_buffer.get());
     viennacl::backend::memory_read(gpu_matrix.handle2(), 0, col_buffer.raw_size(), col_buffer.get());
@@ -365,7 +366,7 @@ void copy(const compressed_matrix<NumericT, AlignmentV> & gpu_matrix,
       {
         if (col_buffer[data_index] >= gpu_matrix.size2())
         {
-          std::cerr << "ViennaCL encountered invalid data at colbuffer[" << data_index << "]: " << col_buffer[data_index] << std::endl;
+          Rcpp::Rcerr << "ViennaCL encountered invalid data at colbuffer[" << data_index << "]: " << col_buffer[data_index] << std::endl;
           return;
         }
 
@@ -767,7 +768,7 @@ public:
     assert( (rows > 0)     && bool("Error in compressed_matrix::set(): Number of rows must be larger than zero!"));
     assert( (cols > 0)     && bool("Error in compressed_matrix::set(): Number of columns must be larger than zero!"));
     assert( (nonzeros > 0) && bool("Error in compressed_matrix::set(): Number of nonzeros must be larger than zero!"));
-    //std::cout << "Setting memory: " << cols + 1 << ", " << nonzeros << std::endl;
+    //Rcpp::Rcout << "Setting memory: " << cols + 1 << ", " << nonzeros << std::endl;
 
     //row_buffer_.switch_active_handle_id(viennacl::backend::OPENCL_MEMORY);
     viennacl::backend::memory_create(row_buffer_, viennacl::backend::typesafe_host_array<unsigned int>(row_buffer_).element_size() * (rows + 1), viennacl::traits::context(row_buffer_), row_jumper);

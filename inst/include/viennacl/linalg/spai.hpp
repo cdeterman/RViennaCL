@@ -58,6 +58,7 @@
 #include "boost/numeric/ublas/matrix_expression.hpp"
 
 
+#include <Rcpp.h>
 namespace viennacl
 {
     namespace linalg
@@ -89,7 +90,7 @@ namespace viennacl
                 //UBLASDenseMatrixType dA = A;
                 MatrixType pA(A.size1(), A.size2());
                 MatrixType At;
-                //std::cout<<A<<std::endl;
+                //Rcpp::Rcout<<A<<std::endl;
                 if (!tag_.getIsRight()){
                     viennacl::linalg::detail::spai::sparse_transpose(A, At);
                 }else{

@@ -75,6 +75,42 @@ else
   #cp -r ${viennaclRoot}/${viennaclVer}/viennacl/CL/ ${pkgincl}
 fi
 
+echo "Changing all std::cout/std::cerr to Rcpp equivalent"
+cd ${pkgincl}
+grep -rl "std::cout" viennacl | xargs sed -i s@"std::cout"@"Rcpp::Rcout"@g
+grep -rl "std::cerr" viennacl | xargs sed -i s@"std::cerr"@"Rcpp::Rcerr"@g
+
+echo "Adding Rcpp.h to files"
+grep -rl "^namespace viennacl" viennacl | xargs sed -i s@"^namespace viennacl"@"#include <Rcpp.h>\nnamespace viennacl"@g
+
+echo "shortening long device paths"
+find . -type d -name "nvidia" -exec rename 's/nvidia/nv/g' {} +
+find . -type d -name "fermi" -exec rename 's/fermi/f/g' {} +
+find . -type d -name "kepler" -exec rename 's/kepler/k/g' {} +
+find . -type d -name "maxwell" -exec rename 's/maxwell/m/g' {} +
+find . -type d -name "evergreen" -exec rename 's/evergreen/ev/g' {} +
+find . -type d -name "northern_islands" -exec rename 's/northern_islands/ni/g' {} +
+find . -type d -name "southern_islands" -exec rename 's/southern_islands/si/g' {} +
+find . -type d -name "volcanic_islands" -exec rename 's/volcanic_islands/vi/g' {} +
+find . -depth -exec rename 's/geforce/ge/g' {} +
+
+# grep -rl "nvidia" viennacl | xargs sed -i s@"nvidia"@"nv"@g
+# grep -rl "nvidia" viennacl | xargs sed -i s@"nvidia"@"nv"@g
+# grep -rl "northern_islands" viennacl | xargs sed -i s@"northern_islands"@"ni"@g
+# grep -rl "southern_islands" viennacl | xargs sed -i s@"southern_islands"@"si"@g
+# grep -rl "volcani_islands" viennacl | xargs sed -i s@"volcanic_islands"@"vi"@g
+
+grep -rl "^#include.*nvidia" viennacl | xargs sed -i 's/nvidia\//nv\//g'
+grep -rl "^#include.*fermi" viennacl | xargs sed -i 's/fermi\//f\//g'
+grep -rl "^#include.*maxwell" viennacl | xargs sed -i 's/maxwell\//m\//g'
+grep -rl "^#include.*kepler" viennacl | xargs sed -i 's/kepler\//k\//g'
+grep -rl "^#include.*geforce" viennacl | xargs sed -i 's/\/geforce/\/ge/g'
+grep -rl "^#include.*evergreen" viennacl | xargs sed -i 's/evergreen\//ev\//g'
+grep -rl "^#include.*northern_islands" viennacl | xargs sed -i 's/northern_islands\//ni\//g'
+grep -rl "^#include.*southern_islands" viennacl | xargs sed -i 's/southern_islands\//si\//g'
+grep -rl "^#include.*volcanic_islands" viennacl | xargs sed -i 's/volcanic_islands\//vi\//g'
+# grep -rl "^#include.*bar/" . | xargs sed -i 's/bar\//quz\//g'
+
 ## Post processing and cleanup
 echo "Purging (temp. dir) ${viennaclRoot}"
 rm -rf ${viennaclRoot}

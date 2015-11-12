@@ -28,6 +28,7 @@
 #include "viennacl/meta/enable_if.hpp"
 #include "viennacl/meta/tag_of.hpp"
 
+#include <Rcpp.h>
 namespace viennacl
 {
   //
@@ -111,7 +112,7 @@ namespace viennacl
                                  viennacl::op_norm_2 >
     norm_2(viennacl::vector_base<ScalarType> const & v)
     {
-       //std::cout << "viennacl .. " << std::endl;
+       //Rcpp::Rcout << "viennacl .. " << std::endl;
       return viennacl::scalar_expression< const viennacl::vector_base<ScalarType>,
                                           const viennacl::vector_base<ScalarType>,
                                           viennacl::op_norm_2 >(v, v);
