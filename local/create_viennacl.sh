@@ -10,7 +10,7 @@
 ## -- standard git checkout
 pkgdir="${HOME}/RViennaCL"
 ## -- current ViennaCL version, placed eg in ${pkgdir}/local/
-viennacltargz="ViennaCL-1.7.0.tar.gz"
+viennacltargz="ViennaCL-1.7.1.tar.gz"
 date="2015-09-03"
 ## -- state if development version from github
 dev=false

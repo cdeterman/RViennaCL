@@ -2,7 +2,7 @@
 #define VIENNACL_TRAITS_SIZE_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -202,6 +202,10 @@ typename result_of::size_type<MatrixType>::type
 size2(MatrixType const & mat) { return mat.size2(); }
 
 /** \cond */
+template<typename RowType>
+vcl_size_t
+size2(std::vector< RowType > const & mat) { return mat[0].size(); }
+
 #ifdef VIENNACL_WITH_ARMADILLO
 template<typename NumericT>
 inline vcl_size_t size2(arma::Mat<NumericT> const & A) { return A.n_cols; }

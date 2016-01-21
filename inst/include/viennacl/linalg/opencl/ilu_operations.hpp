@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_OPENCL_ILU_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -112,7 +112,7 @@ void icc_scale(compressed_matrix<NumericT> const & A,
 /////////////////////////////////////
 
 
-/** @brief Performs one nonlinear relaxation step in the Chow-Patel-ILU using OpenMP (cf. Algorithm 2 in paper) */
+/** @brief Performs one nonlinear relaxation step in the Chow-Patel-ILU using OpenCL (cf. Algorithm 2 in paper) */
 template<typename NumericT>
 void icc_chow_patel_sweep(compressed_matrix<NumericT>       & L,
                           vector<NumericT>            const & aij_L)
@@ -209,7 +209,7 @@ void ilu_scale(compressed_matrix<NumericT> const & A,
 /////////////////////////////////////
 
 
-/** @brief Performs one nonlinear relaxation step in the Chow-Patel-ILU using OpenMP (cf. Algorithm 2 in paper) */
+/** @brief Performs one nonlinear relaxation step in the Chow-Patel-ILU using OpenCL (cf. Algorithm 2 in paper) */
 template<typename NumericT>
 void ilu_chow_patel_sweep(compressed_matrix<NumericT>       & L,
                           vector<NumericT>            const & aij_L,

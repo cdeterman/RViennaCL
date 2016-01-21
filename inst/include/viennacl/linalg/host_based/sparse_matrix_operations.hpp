@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_HOST_BASED_SPARSE_MATRIX_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -111,7 +111,9 @@ namespace detail
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::compressed_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+               viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
   NumericT           * result_buf = detail::extract_raw_pointer<NumericT>(result.handle());
   NumericT     const * vec_buf    = detail::extract_raw_pointer<NumericT>(vec.handle());
@@ -128,7 +130,14 @@ void prod_impl(const viennacl::compressed_matrix<NumericT, AlignmentV> & mat,
     vcl_size_t row_end = row_buffer[row+1];
     for (vcl_size_t i = row_buffer[row]; i < row_end; ++i)
       dot_prod += elements[i] * vec_buf[col_buffer[i] * vec.stride() + vec.start()];
-    result_buf[static_cast<vcl_size_t>(row) * result.stride() + result.start()] = dot_prod;
+
+    if (beta < 0 || beta > 0)
+    {
+      vcl_size_t index = static_cast<vcl_size_t>(row) * result.stride() + result.start();
+      result_buf[index] = alpha * dot_prod + beta * result_buf[index];
+    }
+    else
+      result_buf[static_cast<vcl_size_t>(row) * result.stride() + result.start()] = alpha * dot_prod;
   }
 
 }
@@ -336,6 +345,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
 #if defined(VIENNACL_WITH_OPENMP)
   unsigned int block_factor = 10;
   unsigned int max_threads = omp_get_max_threads();
+  long chunk_size = long(A.size1()) / long(block_factor * max_threads) + 1;
 #else
   unsigned int max_threads = 1;
 #endif
@@ -349,7 +359,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
    */
 
 #if defined(VIENNACL_WITH_OPENMP)
-  #pragma omp parallel for schedule(dynamic, A.size1() / (block_factor * max_threads) + 1)
+  #pragma omp parallel for schedule(dynamic, chunk_size)
 #endif
   for (long i=0; i<long(A.size1()); ++i)
   {
@@ -388,7 +398,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
    */
 
 #ifdef VIENNACL_WITH_OPENMP
-  #pragma omp parallel for schedule(dynamic, A.size1() / (block_factor * max_threads) + 1)
+  #pragma omp parallel for schedule(dynamic, chunk_size)
 #endif
   for (long i=0; i<long(A.size1()); ++i)
   {
@@ -432,7 +442,7 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   unsigned int * C_col_buffer = detail::extract_raw_pointer<unsigned int>(C.handle2());
 
 #ifdef VIENNACL_WITH_OPENMP
-  #pragma omp parallel for schedule(dynamic, A.size1() / (block_factor * max_threads) + 1)
+  #pragma omp parallel for schedule(dynamic, chunk_size)
 #endif
   for (long i = 0; i < long(A.size1()); ++i)
   {
@@ -1052,7 +1062,9 @@ void inplace_solve(matrix_expression< const compressed_matrix<NumericT, Alignmen
 template<typename NumericT>
 void prod_impl(const viennacl::compressed_compressed_matrix<NumericT> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
   NumericT           * result_buf  = detail::extract_raw_pointer<NumericT>(result.handle());
   NumericT     const * vec_buf     = detail::extract_raw_pointer<NumericT>(vec.handle());
@@ -1061,7 +1073,16 @@ void prod_impl(const viennacl::compressed_compressed_matrix<NumericT> & mat,
   unsigned int const * row_indices = detail::extract_raw_pointer<unsigned int>(mat.handle3());
   unsigned int const * col_buffer  = detail::extract_raw_pointer<unsigned int>(mat.handle2());
 
-  vector_assign(result, NumericT(0));
+  if (beta < 0 || beta > 0)
+  {
+    for (vcl_size_t i = 0; i< result.size(); ++i)
+      result_buf[i * result.stride() + result.start()] *= beta;
+  }
+  else // flush
+  {
+    for (vcl_size_t i = 0; i< result.size(); ++i)
+      result_buf[i * result.stride() + result.start()] = 0;
+  }
 
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
@@ -1072,7 +1093,11 @@ void prod_impl(const viennacl::compressed_compressed_matrix<NumericT> & mat,
     vcl_size_t row_end = row_buffer[i+1];
     for (vcl_size_t j = row_buffer[i]; j < row_end; ++j)
       dot_prod += elements[j] * vec_buf[col_buffer[j] * vec.stride() + vec.start()];
-    result_buf[row_indices[i] * result.stride() + result.start()] = dot_prod;
+
+    if (beta > 0 || beta < 0)
+      result_buf[vcl_size_t(row_indices[i]) * result.stride() + result.start()] += alpha * dot_prod;
+    else
+      result_buf[vcl_size_t(row_indices[i]) * result.stride() + result.start()]  = alpha * dot_prod;
   }
 
 }
@@ -1153,19 +1178,29 @@ namespace detail
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::coordinate_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
   NumericT           * result_buf   = detail::extract_raw_pointer<NumericT>(result.handle());
   NumericT     const * vec_buf      = detail::extract_raw_pointer<NumericT>(vec.handle());
   NumericT     const * elements     = detail::extract_raw_pointer<NumericT>(mat.handle());
   unsigned int const * coord_buffer = detail::extract_raw_pointer<unsigned int>(mat.handle12());
 
-  for (vcl_size_t i = 0; i< result.size(); ++i)
-    result_buf[i * result.stride() + result.start()] = 0;
+  if (beta < 0 || beta > 0)
+  {
+    for (vcl_size_t i = 0; i< result.size(); ++i)
+      result_buf[i * result.stride() + result.start()] *= beta;
+  }
+  else // flush
+  {
+    for (vcl_size_t i = 0; i< result.size(); ++i)
+      result_buf[i * result.stride() + result.start()] = 0;
+  }
 
   for (vcl_size_t i = 0; i < mat.nnz(); ++i)
     result_buf[coord_buffer[2*i] * result.stride() + result.start()]
-      += elements[i] * vec_buf[coord_buffer[2*i+1] * vec.stride() + vec.start()];
+      += alpha * elements[i] * vec_buf[coord_buffer[2*i+1] * vec.stride() + vec.start()];
 }
 
 /** @brief Carries out Compressed Matrix(COO)-Dense Matrix multiplication
@@ -1407,6 +1442,9 @@ void prod_impl(const viennacl::coordinate_matrix<NumericT, AlignmentV> & sp_mat,
   }
 
 }
+
+
+
 //
 // ELL Matrix
 //
@@ -1421,7 +1459,9 @@ void prod_impl(const viennacl::coordinate_matrix<NumericT, AlignmentV> & sp_mat,
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::ell_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
   NumericT           * result_buf   = detail::extract_raw_pointer<NumericT>(result.handle());
   NumericT     const * vec_buf      = detail::extract_raw_pointer<NumericT>(vec.handle());
@@ -1444,7 +1484,13 @@ void prod_impl(const viennacl::ell_matrix<NumericT, AlignmentV> & mat,
       }
     }
 
-    result_buf[row * result.stride() + result.start()] = sum;
+    if (beta < 0 || beta > 0)
+    {
+      vcl_size_t index = row * result.stride() + result.start();
+      result_buf[index] = alpha * sum + beta * result_buf[index];
+    }
+    else
+      result_buf[row * result.stride() + result.start()] = alpha * sum;
   }
 }
 
@@ -1669,9 +1715,9 @@ void prod_impl(const viennacl::ell_matrix<NumericT, AlignmentV> & sp_mat,
 #ifdef VIENNACL_WITH_OPENMP
   #pragma omp parallel for
 #endif
-    for (long item_id = 0; item_id < static_cast<long>(sp_mat.maxnnz()); ++item_id) {
+    for (vcl_size_t row = 0; row < sp_mat.size1(); ++row) {
 
-      for (vcl_size_t row = 0; row < sp_mat.size1(); ++row) {
+      for (long item_id = 0; item_id < static_cast<long>(sp_mat.maxnnz()); ++item_id) {
 
         vcl_size_t offset = row + static_cast<vcl_size_t>(item_id) * sp_mat.internal_size1();
         NumericT sp_mat_val = static_cast<NumericT>(sp_mat_elements[offset]);
@@ -1707,7 +1753,9 @@ void prod_impl(const viennacl::ell_matrix<NumericT, AlignmentV> & sp_mat,
 template<typename NumericT, typename IndexT>
 void prod_impl(const viennacl::sliced_ell_matrix<NumericT, IndexT> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
   NumericT       * result_buf        = detail::extract_raw_pointer<NumericT>(result.handle());
   NumericT const * vec_buf           = detail::extract_raw_pointer<NumericT>(vec.handle());
@@ -1744,10 +1792,24 @@ void prod_impl(const viennacl::sliced_ell_matrix<NumericT, IndexT> & mat,
     }
 
     vcl_size_t first_row_in_matrix = block_idx * mat.rows_per_block();
-    for (IndexT row_in_block = 0; row_in_block < mat.rows_per_block(); ++row_in_block)
+    if (beta < 0 || beta > 0)
     {
-      if (first_row_in_matrix + row_in_block < result.size())
-        result_buf[(first_row_in_matrix + row_in_block) * result.stride() + result.start()] = result_values[row_in_block];
+      for (IndexT row_in_block = 0; row_in_block < mat.rows_per_block(); ++row_in_block)
+      {
+        if (first_row_in_matrix + row_in_block < result.size())
+        {
+          vcl_size_t index = (first_row_in_matrix + row_in_block) * result.stride() + result.start();
+          result_buf[index] = alpha * result_values[row_in_block] + beta * result_buf[index];
+        }
+      }
+    }
+    else
+    {
+      for (IndexT row_in_block = 0; row_in_block < mat.rows_per_block(); ++row_in_block)
+      {
+        if (first_row_in_matrix + row_in_block < result.size())
+          result_buf[(first_row_in_matrix + row_in_block) * result.stride() + result.start()] = alpha * result_values[row_in_block];
+      }
     }
   }
 }
@@ -1767,7 +1829,9 @@ void prod_impl(const viennacl::sliced_ell_matrix<NumericT, IndexT> & mat,
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::hyb_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
   NumericT           * result_buf     = detail::extract_raw_pointer<NumericT>(result.handle());
   NumericT     const * vec_buf        = detail::extract_raw_pointer<NumericT>(vec.handle());
@@ -1808,7 +1872,13 @@ void prod_impl(const viennacl::hyb_matrix<NumericT, AlignmentV> & mat,
         sum += (vec_buf[csr_col_buffer[item_id] * vec.stride() + vec.start()] * csr_elements[item_id]);
     }
 
-    result_buf[row * result.stride() + result.start()] = sum;
+    if (beta < 0 || beta > 0)
+    {
+      vcl_size_t index = row * result.stride() + result.start();
+      result_buf[index] = alpha * sum + beta * result_buf[index];
+    }
+    else
+      result_buf[row * result.stride() + result.start()] = alpha * sum;
   }
 
 }

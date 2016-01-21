@@ -2,7 +2,7 @@
 #define VIENNACL_OCL_ERROR_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -565,7 +565,7 @@ class unknown_error : public std::exception
 {
   virtual const char* what() const throw()
   {
-    return "ViennaCL: FATAL ERROR: ViennaCL encountered an unknown OpenCL error. In some cases, this might be due to an invalid global work size, but it can also be due to several compilation errors."
+    return "ViennaCL: FATAL ERROR: ViennaCL encountered an unknown OpenCL error. Most likely your OpenCL SDK or driver is not installed properly. In some cases, this error is due to an invalid global work size or several kernel compilation errors."
         VIENNACL_BUG_REPORT_STRING;
   }
 };

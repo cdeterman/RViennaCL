@@ -2,7 +2,7 @@
 #define VIENNACL_COMPRESSED_MATRIX_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -594,6 +594,8 @@ public:
     if (rows > 0)
     {
       viennacl::backend::memory_create(row_buffer_, viennacl::backend::typesafe_host_array<unsigned int>().element_size() * (rows + 1), ctx);
+      viennacl::vector_base<unsigned int> init_temporary(row_buffer_, size_type(rows+1), 0, 1);
+      init_temporary = viennacl::zero_vector<unsigned int>(size_type(rows+1), ctx);
     }
     if (nonzeros > 0)
     {
@@ -628,6 +630,8 @@ public:
     if (rows > 0)
     {
       viennacl::backend::memory_create(row_buffer_, viennacl::backend::typesafe_host_array<unsigned int>().element_size() * (rows + 1), ctx);
+      viennacl::vector_base<unsigned int> init_temporary(row_buffer_, size_type(rows+1), 0, 1);
+      init_temporary = viennacl::zero_vector<unsigned int>(size_type(rows+1), ctx);
     }
   }
 
@@ -870,7 +874,10 @@ public:
           }
         }
 
-        viennacl::copy(stl_sparse_matrix, *this);
+        viennacl::tools::sparse_matrix_adapter<NumericT> adapted_matrix(stl_sparse_matrix, new_size1, new_size2);
+        rows_ = new_size1;
+        cols_ = new_size2;
+        viennacl::copy(adapted_matrix, *this);
       }
 
       rows_ = new_size1;
@@ -1084,11 +1091,11 @@ namespace detail
       if (viennacl::traits::handle(lhs) == viennacl::traits::handle(rhs.rhs()))
       {
         viennacl::vector<T> temp(lhs);
-        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), temp);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), temp, T(0));
         lhs = temp;
       }
       else
-        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), lhs);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), lhs, T(0));
     }
   };
 
@@ -1097,9 +1104,15 @@ namespace detail
   {
     static void apply(vector_base<T> & lhs, vector_expression<const compressed_matrix<T, A>, const vector_base<T>, op_prod> const & rhs)
     {
-      viennacl::vector<T> temp(lhs);
-      viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), temp);
-      lhs += temp;
+      // check for the special case x += A * x
+      if (viennacl::traits::handle(lhs) == viennacl::traits::handle(rhs.rhs()))
+      {
+        viennacl::vector<T> temp(lhs);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), temp, T(0));
+        lhs += temp;
+      }
+      else
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), lhs, T(1));
     }
   };
 
@@ -1108,9 +1121,15 @@ namespace detail
   {
     static void apply(vector_base<T> & lhs, vector_expression<const compressed_matrix<T, A>, const vector_base<T>, op_prod> const & rhs)
     {
-      viennacl::vector<T> temp(lhs);
-      viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), temp);
-      lhs -= temp;
+      // check for the special case x -= A * x
+      if (viennacl::traits::handle(lhs) == viennacl::traits::handle(rhs.rhs()))
+      {
+        viennacl::vector<T> temp(lhs);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), temp, T(0));
+        lhs -= temp;
+      }
+      else
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(-1), lhs, T(1));
     }
   };
 

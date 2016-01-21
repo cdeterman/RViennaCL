@@ -2,7 +2,7 @@
 #define VIENNACL_MATRIX_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -353,7 +353,7 @@ matrix_base<NumericT, SizeT, DistanceT> & matrix_base<NumericT, SizeT, DistanceT
   else
   {
     if ( proxy.lhs().size1() != proxy.lhs().size2() )
-      this->resize(proxy.lhs().size2(), proxy.lhs().size1());
+      this->resize(proxy.lhs().size2(), proxy.lhs().size1(), false);
     viennacl::linalg::trans(proxy, *this);
   }
   return *this;
@@ -878,6 +878,16 @@ matrix_expression< const matrix_base<NumericT>, const matrix_base<NumericT>, op_
 trans(const matrix_base<NumericT> & mat)
 {
   return matrix_expression< const matrix_base<NumericT>, const matrix_base<NumericT>, op_trans>(mat, mat);
+}
+
+/** @brief Returns an expression template class representing the transposed matrix expression */
+template<typename LhsT, typename RhsT, typename OpT>
+matrix_expression< const matrix_expression<const LhsT, const RhsT, OpT>, const matrix_expression<const LhsT, const RhsT, OpT>, op_trans>
+trans(const matrix_expression<const LhsT, const RhsT, OpT> & proxy)
+{
+  return matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
+                           const matrix_expression<const LhsT, const RhsT, OpT>,
+                           op_trans>(proxy, proxy);
 }
 
 //diag():
@@ -1825,6 +1835,20 @@ namespace detail
     }
   };
 
+  // x = trans(expr)
+  template<typename T, typename LhsT, typename RhsT, typename OpT>
+  struct op_executor<matrix_base<T>, op_assign, matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>, const matrix_expression<const LhsT, const RhsT, OpT>, op_trans> >
+  {
+    static void apply(matrix_base<T> & lhs, matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
+                                                              const matrix_expression<const LhsT, const RhsT, OpT>,
+                                                              op_trans> const & rhs)
+    {
+      matrix_base<T> temp1(rhs.rhs());
+      matrix_base<T> temp2(viennacl::trans(temp1));
+      viennacl::linalg::am(lhs, temp2, T(1), 1, false, false);
+    }
+  };
+
 
   // x += y
   template<typename T>
@@ -1847,6 +1871,20 @@ namespace detail
     }
   };
 
+  // x += trans(expr)
+  template<typename T, typename LhsT, typename RhsT, typename OpT>
+  struct op_executor<matrix_base<T>, op_inplace_add, matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>, const matrix_expression<const LhsT, const RhsT, OpT>, op_trans> >
+  {
+    static void apply(matrix_base<T> & lhs, matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
+                                                              const matrix_expression<const LhsT, const RhsT, OpT>,
+                                                              op_trans> const & rhs)
+    {
+      matrix_base<T> temp1(rhs.rhs());
+      matrix_base<T> temp2(viennacl::trans(temp1));
+      viennacl::linalg::ambm(lhs, lhs, T(1), 1, false, false, temp2, T(1), 1, false, false);
+    }
+  };
+
   // x -= y
   template<typename T>
   struct op_executor<matrix_base<T>, op_inplace_sub, matrix_base<T> >
@@ -1865,6 +1903,20 @@ namespace detail
     {
       matrix_base<T> temp(rhs);
       viennacl::linalg::ambm(lhs, lhs, T(1), 1, false, false, temp, T(1), 1, false, true);
+    }
+  };
+
+  // x -= trans(expr)
+  template<typename T, typename LhsT, typename RhsT, typename OpT>
+  struct op_executor<matrix_base<T>, op_inplace_sub, matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>, const matrix_expression<const LhsT, const RhsT, OpT>, op_trans> >
+  {
+    static void apply(matrix_base<T> & lhs, matrix_expression<const matrix_expression<const LhsT, const RhsT, OpT>,
+                                                              const matrix_expression<const LhsT, const RhsT, OpT>,
+                                                              op_trans> const & rhs)
+    {
+      matrix_base<T> temp1(rhs.rhs());
+      matrix_base<T> temp2(viennacl::trans(temp1));
+      viennacl::linalg::ambm(lhs, lhs, T(1), 1, false, false, temp2, T(1), 1, false, true);
     }
   };
 

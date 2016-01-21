@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_OPENCL_KERNELS_COORDINATE_MATRIX_HPP
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -48,8 +48,10 @@ void generate_coordinate_matrix_vec_mul(StringT & source, std::string const & nu
   source.append("  __global const uint  * group_boundaries, \n");
   source.append("  __global const "); source.append(numeric_string); source.append(" * x, \n");
   source.append("  uint4 layout_x, \n");
+  source.append("  "); source.append(numeric_string); source.append(" alpha, \n");
   source.append("  __global "); source.append(numeric_string); source.append(" * result, \n");
   source.append("  uint4 layout_result, \n");
+  source.append("  "); source.append(numeric_string); source.append(" beta, \n");
   source.append("  __local unsigned int * shared_rows, \n");
   source.append("  __local "); source.append(numeric_string); source.append(" * inter_results) \n");
   source.append("{ \n");
@@ -71,8 +73,10 @@ void generate_coordinate_matrix_vec_mul(StringT & source, std::string const & nu
   source.append("    if (get_local_id(0) == 0 && k > 0) { \n");
   source.append("      if (tmp.x == shared_rows[get_local_size(0)-1]) \n");
   source.append("        val += inter_results[get_local_size(0)-1]; \n");
+  source.append("      else if (beta != 0) \n");
+  source.append("        result[shared_rows[get_local_size(0)-1] * layout_result.y + layout_result.x] += alpha * inter_results[get_local_size(0)-1]; \n");
   source.append("      else \n");
-  source.append("        result[shared_rows[get_local_size(0)-1] * layout_result.y + layout_result.x] = inter_results[get_local_size(0)-1]; \n");
+  source.append("        result[shared_rows[get_local_size(0)-1] * layout_result.y + layout_result.x]  = alpha * inter_results[get_local_size(0)-1]; \n");
   source.append("    } \n");
 
   //segmented parallel reduction begin
@@ -90,16 +94,19 @@ void generate_coordinate_matrix_vec_mul(StringT & source, std::string const & nu
   source.append("    } \n");
   //segmented parallel reduction end
 
-  source.append("    if (local_index < group_end && get_local_id(0) < get_local_size(0) - 1 && \n");
+  source.append("    if (local_index < group_end - 1 && get_local_id(0) < get_local_size(0) - 1 && \n");
   source.append("      shared_rows[get_local_id(0)] != shared_rows[get_local_id(0) + 1]) { \n");
-  source.append("      result[tmp.x * layout_result.y + layout_result.x] = inter_results[get_local_id(0)]; \n");
+  source.append("      if (beta != 0) result[tmp.x * layout_result.y + layout_result.x] += alpha * inter_results[get_local_id(0)]; \n");
+  source.append("      else           result[tmp.x * layout_result.y + layout_result.x]  = alpha * inter_results[get_local_id(0)]; \n");
   source.append("    } \n");
 
   source.append("    barrier(CLK_LOCAL_MEM_FENCE); \n");
   source.append("  }  \n"); //for k
 
-  source.append("  if (local_index + 1 == group_end) \n");  //write results of last active entry (this may not necessarily be the case already)
-  source.append("    result[tmp.x * layout_result.y + layout_result.x] = inter_results[get_local_id(0)]; \n");
+  source.append("  if (local_index + 1 == group_end) {\n");  //write results of last active entry (this may not necessarily be the case already)
+  source.append("    if (beta != 0) result[tmp.x * layout_result.y + layout_result.x] += alpha * inter_results[get_local_id(0)]; \n");
+  source.append("    else           result[tmp.x * layout_result.y + layout_result.x]  = alpha * inter_results[get_local_id(0)]; \n");
+  source.append("  } \n");
   source.append("} \n");
 
 }
@@ -153,7 +160,7 @@ namespace detail
     source.append("    tmp = (local_index < group_end) ? coords[local_index] : (uint2) 0; \n");
     if (B_transposed && B_row_major)
       source.append("    val = (local_index < group_end) ? elements[local_index] * d_mat[ (d_mat_row_start + result_col * d_mat_row_inc) * d_mat_internal_cols + d_mat_col_start +      tmp.y * d_mat_col_inc ] : 0; \n");
-    if (B_transposed && !B_row_major)
+    else if (B_transposed && !B_row_major)
       source.append("    val = (local_index < group_end) ? elements[local_index] * d_mat[ (d_mat_row_start + result_col * d_mat_row_inc)                       + (d_mat_col_start +      tmp.y * d_mat_col_inc) * d_mat_internal_rows ] : 0; \n");
     else if (!B_transposed && B_row_major)
       source.append("    val = (local_index < group_end) ? elements[local_index] * d_mat[ (d_mat_row_start +      tmp.y * d_mat_row_inc) * d_mat_internal_cols + d_mat_col_start + result_col * d_mat_col_inc ] : 0; \n");

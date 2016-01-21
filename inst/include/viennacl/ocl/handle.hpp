@@ -2,7 +2,7 @@
 #define VIENNACL_OCL_HANDLE_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -61,10 +61,8 @@ namespace viennacl
 
       static void dec(cl_mem & something)
       {
-        #ifndef __APPLE__
         cl_int err = clReleaseMemObject(something);
         VIENNACL_ERR_CHECK(err);
-        #endif
       }
     };
 
@@ -80,6 +78,7 @@ namespace viennacl
 
       static void dec(cl_program & something)
       {
+        (void)something;
         #ifndef __APPLE__
         cl_int err = clReleaseProgram(something);
         VIENNACL_ERR_CHECK(err);
@@ -99,6 +98,7 @@ namespace viennacl
 
       static void dec(cl_kernel & something)
       {
+        (void)something;
         #ifndef __APPLE__
         cl_int err = clReleaseKernel(something);
         VIENNACL_ERR_CHECK(err);
@@ -118,6 +118,7 @@ namespace viennacl
 
       static void dec(cl_command_queue & something)
       {
+        (void)something;
         #ifndef __APPLE__
         cl_int err = clReleaseCommandQueue(something);
         VIENNACL_ERR_CHECK(err);
@@ -137,6 +138,7 @@ namespace viennacl
 
       static void dec(cl_context & something)
       {
+        (void)something;
         #ifndef __APPLE__
         cl_int err = clReleaseContext(something);
         VIENNACL_ERR_CHECK(err);

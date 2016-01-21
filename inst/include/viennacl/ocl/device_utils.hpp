@@ -2,7 +2,7 @@
 #define VIENNACL_OCL_DEVICE_UTILS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -56,7 +56,7 @@ enum vendor_id
 enum device_architecture_family
 {
   //NVidia
-  tesla,
+  tesla = 0,
   fermi,
   kepler,
   maxwell,
@@ -158,10 +158,17 @@ inline device_architecture_family get_architecture_family(cl_uint vendor_id, std
     VIENNACL_DEVICE_MAP("Curacao",southern_islands);
     VIENNACL_DEVICE_MAP("Tahiti",southern_islands);
     VIENNACL_DEVICE_MAP("Malta",southern_islands);
+    VIENNACL_DEVICE_MAP("Trinidad",southern_islands);
+    VIENNACL_DEVICE_MAP("Tobago",southern_islands);
+    VIENNACL_DEVICE_MAP("Oland",southern_islands);
 
     //VolcanicIslands
     VIENNACL_DEVICE_MAP("Hawaii",volcanic_islands);
+    VIENNACL_DEVICE_MAP("Vesuvius",volcanic_islands);
     VIENNACL_DEVICE_MAP("Tonga",volcanic_islands);
+    VIENNACL_DEVICE_MAP("Antigua",volcanic_islands);
+    VIENNACL_DEVICE_MAP("Grenada",volcanic_islands);
+    VIENNACL_DEVICE_MAP("Fiji",volcanic_islands);
 
     //APUs (map to closest hardware architecture)
     VIENNACL_DEVICE_MAP("Scrapper",northern_islands);

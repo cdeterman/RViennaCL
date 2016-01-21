@@ -2,7 +2,7 @@
 #define VIENNACL_ELL_MATRIX_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -182,8 +182,14 @@ template<typename IndexT, typename NumericT, unsigned int AlignmentV>
 void copy(std::vector< std::map<IndexT, NumericT> > const & cpu_matrix,
           ell_matrix<NumericT, AlignmentV> & gpu_matrix)
 {
-  tools::const_sparse_matrix_adapter<NumericT, IndexT> temp(cpu_matrix, cpu_matrix.size(), cpu_matrix.size());
-  viennacl::copy(temp, gpu_matrix);
+  vcl_size_t max_col = 0;
+  for (vcl_size_t i=0; i<cpu_matrix.size(); ++i)
+  {
+    if (cpu_matrix[i].size() > 0)
+      max_col = std::max<vcl_size_t>(max_col, (cpu_matrix[i].rbegin())->first);
+  }
+
+  viennacl::copy(tools::const_sparse_matrix_adapter<NumericT, IndexT>(cpu_matrix, cpu_matrix.size(), max_col + 1), gpu_matrix);
 }
 
 
@@ -237,7 +243,12 @@ template<typename NumericT, unsigned int AlignmentV, typename IndexT>
 void copy(const ell_matrix<NumericT, AlignmentV> & gpu_matrix,
           std::vector< std::map<IndexT, NumericT> > & cpu_matrix)
 {
-  tools::sparse_matrix_adapter<NumericT, IndexT> temp(cpu_matrix, cpu_matrix.size(), cpu_matrix.size());
+  if (cpu_matrix.size() == 0)
+    cpu_matrix.resize(gpu_matrix.size1());
+
+  assert(cpu_matrix.size() == gpu_matrix.size1() && bool("Matrix dimension mismatch!"));
+
+  tools::sparse_matrix_adapter<NumericT, IndexT> temp(cpu_matrix, gpu_matrix.size1(), gpu_matrix.size2());
   viennacl::copy(gpu_matrix, temp);
 }
 
@@ -261,11 +272,11 @@ namespace detail
       if (viennacl::traits::handle(lhs) == viennacl::traits::handle(rhs.rhs()))
       {
         viennacl::vector<T> temp(lhs);
-        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), temp);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), temp, T(0));
         lhs = temp;
       }
       else
-        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), lhs);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), lhs, T(0));
     }
   };
 
@@ -274,9 +285,15 @@ namespace detail
   {
     static void apply(vector_base<T> & lhs, vector_expression<const ell_matrix<T, A>, const vector_base<T>, op_prod> const & rhs)
     {
-      viennacl::vector<T> temp(lhs);
-      viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), temp);
-      lhs += temp;
+      // check for the special case x += A * x
+      if (viennacl::traits::handle(lhs) == viennacl::traits::handle(rhs.rhs()))
+      {
+        viennacl::vector<T> temp(lhs);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), temp, T(0));
+        lhs += temp;
+      }
+      else
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), lhs, T(1));
     }
   };
 
@@ -285,9 +302,15 @@ namespace detail
   {
     static void apply(vector_base<T> & lhs, vector_expression<const ell_matrix<T, A>, const vector_base<T>, op_prod> const & rhs)
     {
-      viennacl::vector<T> temp(lhs);
-      viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), temp);
-      lhs -= temp;
+      // check for the special case x -= A * x
+      if (viennacl::traits::handle(lhs) == viennacl::traits::handle(rhs.rhs()))
+      {
+        viennacl::vector<T> temp(lhs);
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(1), temp, T(0));
+        lhs -= temp;
+      }
+      else
+        viennacl::linalg::prod_impl(rhs.lhs(), rhs.rhs(), T(-1), lhs, T(1));
     }
   };
 

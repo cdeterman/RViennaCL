@@ -2,7 +2,7 @@
 #define VIENNACL_LINALG_CUDA_SPARSE_MATRIX_OPERATIONS_HPP_
 
 /* =========================================================================
-   Copyright (c) 2010-2015, Institute for Microelectronics,
+   Copyright (c) 2010-2016, Institute for Microelectronics,
                             Institute for Analysis and Scientific Computing,
                             TU Wien.
    Portions of this software are copyright by UChicago Argonne, LLC.
@@ -27,6 +27,7 @@
 #include "viennacl/vector.hpp"
 #include "viennacl/tools/tools.hpp"
 #include "viennacl/linalg/cuda/common.hpp"
+#include "viennacl/linalg/cuda/vector_operations.hpp"
 
 #include "viennacl/linalg/cuda/sparse_matrix_operations_solve.hpp"
 
@@ -118,11 +119,23 @@ namespace detail
     VIENNACL_CUDA_LAST_ERROR_CHECK("csr_row_info_extractor_kernel");
   }
 
+  struct spmv_pure
+  {
+    template<typename NumericT>
+    __device__ static void apply(NumericT & result, NumericT alpha, NumericT Ax, NumericT beta) { result = Ax; }
+  };
+
+  struct spmv_alpha_beta
+  {
+    template<typename NumericT>
+    __device__ static void apply(NumericT & result, NumericT alpha, NumericT Ax, NumericT beta) { result = alpha * Ax + ((beta != 0) ? beta * result : 0); }
+  };
+
 } //namespace detail
 
 
 
-template<unsigned int SubWarpSizeV, typename NumericT>
+template<unsigned int SubWarpSizeV, typename AlphaBetaHandlerT, typename NumericT>
 __global__ void compressed_matrix_vec_mul_kernel(
           const unsigned int * row_indices,
           const unsigned int * column_indices,
@@ -130,10 +143,12 @@ __global__ void compressed_matrix_vec_mul_kernel(
           const NumericT * x,
           unsigned int start_x,
           unsigned int inc_x,
+          NumericT alpha,
           NumericT * result,
           unsigned int start_result,
           unsigned int inc_result,
-          unsigned int size_result)
+          unsigned int size_result,
+          NumericT beta)
 {
   __shared__ NumericT shared_elements[512];
 
@@ -159,12 +174,12 @@ __global__ void compressed_matrix_vec_mul_kernel(
     if (16 < SubWarpSizeV) shared_elements[threadIdx.x] += shared_elements[threadIdx.x ^ 16];
 
     if (id_in_row == 0)
-      result[row * inc_result + start_result] = shared_elements[threadIdx.x];
+      AlphaBetaHandlerT::apply(result[row * inc_result + start_result], alpha, shared_elements[threadIdx.x], beta);
   }
 }
 
 
-template<typename NumericT>
+template<typename AlphaBetaHandlerT, typename NumericT>
 __global__ void compressed_matrix_vec_mul_adaptive_kernel(
           const unsigned int * row_indices,
           const unsigned int * column_indices,
@@ -174,10 +189,12 @@ __global__ void compressed_matrix_vec_mul_adaptive_kernel(
           const NumericT * x,
           unsigned int start_x,
           unsigned int inc_x,
+          NumericT alpha,
           NumericT * result,
           unsigned int start_result,
           unsigned int inc_result,
-          unsigned int size_result)
+          unsigned int size_result,
+          NumericT beta)
 {
   __shared__ NumericT     shared_elements[1024];
 
@@ -205,7 +222,7 @@ __global__ void compressed_matrix_vec_mul_adaptive_kernel(
         unsigned int thread_row_stop  = row_indices[row + 1] - element_start;
         for (unsigned int i = thread_row_start; i < thread_row_stop; ++i)
           dot_prod += shared_elements[i];
-        result[row * inc_result + start_result] = dot_prod;
+        AlphaBetaHandlerT::apply(result[row * inc_result + start_result], alpha, dot_prod, beta);
       }
     }
     // TODO here: Consider CSR vector for two to four rows (cf. OpenCL implementation. Experience on Fermi suggests that this may not be necessary)
@@ -225,7 +242,7 @@ __global__ void compressed_matrix_vec_mul_adaptive_kernel(
       }
 
       if (threadIdx.x == 0)
-        result[row_start * inc_result + start_result] = shared_elements[0];
+        AlphaBetaHandlerT::apply(result[row_start * inc_result + start_result], alpha, shared_elements[0], beta);
     }
 
     __syncthreads();  // avoid race conditions
@@ -246,45 +263,135 @@ __global__ void compressed_matrix_vec_mul_adaptive_kernel(
 template<class NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::compressed_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 500
-  if (double(mat.nnz()) / double(mat.size1()) > 6.4) // less than 10% of threads expected to idle
+  static bool first = true;
+  static bool is_maxwell = false;
+
+  // check whether the CUDA device is from the Maxwell family.
+  // Only run once, because the query to the backend takes about the same time as a kernel launch (~15us), thus being too expensive to query each time.
+  //
+  // Note: This might result in non-optimal kernels being selected if multiple Maxwell- and non-Maxwell GPUs are available in the system and devices are switched at runtime.
+  //       However, this situation is certainly rare, hence the the benefits of this singleton outweigh the disadvantages encountered in such a corner case.
+  if (first)
   {
-    compressed_matrix_vec_mul_kernel<8,  NumericT><<<512, 256>>>(   // experience on a GTX 750 Ti suggests that 8 is a substantially better choice here
-#else
-  if (double(mat.nnz()) / double(mat.size1()) > 12.0) // less than 25% of threads expected to idle
+    cudaDeviceProp prop;
+    int device_index = 0;
+
+    cudaError_t err_flag = cudaGetDevice(&device_index);
+    if (err_flag == cudaSuccess)
+    {
+      err_flag = cudaGetDeviceProperties(&prop, device_index);
+      if (err_flag == cudaSuccess && prop.major >= 5)
+        is_maxwell = true;
+    }
+    first = false;
+  }
+
+  if (is_maxwell && double(mat.nnz()) / double(mat.size1()) > 6.4) // less than 10% of threads expected to idle
   {
-    compressed_matrix_vec_mul_kernel<16, NumericT><<<512, 256>>>(   // Fermi and Kepler prefer 16 threads per row (half-warp)
-#endif
-                                                                 viennacl::cuda_arg<unsigned int>(mat.handle1()),
-                                                                 viennacl::cuda_arg<unsigned int>(mat.handle2()),
-                                                                 viennacl::cuda_arg<NumericT>(mat.handle()),
-                                                                 viennacl::cuda_arg(vec),
-                                                                 static_cast<unsigned int>(vec.start()),
-                                                                 static_cast<unsigned int>(vec.stride()),
-                                                                 viennacl::cuda_arg(result),
-                                                                 static_cast<unsigned int>(result.start()),
-                                                                 static_cast<unsigned int>(result.stride()),
-                                                                 static_cast<unsigned int>(result.size())
-                                                                );
+    if (alpha < NumericT(1) || alpha > NumericT(1) || beta < 0 || beta > 0)
+      compressed_matrix_vec_mul_kernel<8, detail::spmv_alpha_beta, NumericT><<<512, 256>>>(   // experience on a GTX 750 Ti suggests that 8 is a substantially better choice here
+                                                                    viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                                    viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                                    viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                                    viennacl::cuda_arg(vec),
+                                                                    static_cast<unsigned int>(vec.start()),
+                                                                    static_cast<unsigned int>(vec.stride()),
+                                                                    alpha,
+                                                                    viennacl::cuda_arg(result),
+                                                                    static_cast<unsigned int>(result.start()),
+                                                                    static_cast<unsigned int>(result.stride()),
+                                                                    static_cast<unsigned int>(result.size()),
+                                                                    beta
+                                                                   );
+    else
+      compressed_matrix_vec_mul_kernel<8, detail::spmv_pure, NumericT><<<512, 256>>>(   // experience on a GTX 750 Ti suggests that 8 is a substantially better choice here
+                                                                    viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                                    viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                                    viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                                    viennacl::cuda_arg(vec),
+                                                                    static_cast<unsigned int>(vec.start()),
+                                                                    static_cast<unsigned int>(vec.stride()),
+                                                                    alpha,
+                                                                    viennacl::cuda_arg(result),
+                                                                    static_cast<unsigned int>(result.start()),
+                                                                    static_cast<unsigned int>(result.stride()),
+                                                                    static_cast<unsigned int>(result.size()),
+                                                                    beta
+                                                                   );
+     VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_matrix_vec_mul_kernel");
+  }
+  else if (!is_maxwell && double(mat.nnz()) / double(mat.size1()) > 12.0) // less than 25% of threads expected to idle
+  {
+    if (alpha < NumericT(1) || alpha > NumericT(1) || beta < 0 || beta > 0)
+      compressed_matrix_vec_mul_kernel<16, detail::spmv_alpha_beta, NumericT><<<512, 256>>>(   // Fermi and Kepler prefer 16 threads per row (half-warp)
+                                                                   viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                                   viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                                   viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                                   viennacl::cuda_arg(vec),
+                                                                   static_cast<unsigned int>(vec.start()),
+                                                                   static_cast<unsigned int>(vec.stride()),
+                                                                   alpha,
+                                                                   viennacl::cuda_arg(result),
+                                                                   static_cast<unsigned int>(result.start()),
+                                                                   static_cast<unsigned int>(result.stride()),
+                                                                   static_cast<unsigned int>(result.size()),
+                                                                   beta
+                                                                  );
+    else
+      compressed_matrix_vec_mul_kernel<16, detail::spmv_pure, NumericT><<<512, 256>>>(   // Fermi and Kepler prefer 16 threads per row (half-warp)
+                                                                   viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                                   viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                                   viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                                   viennacl::cuda_arg(vec),
+                                                                   static_cast<unsigned int>(vec.start()),
+                                                                   static_cast<unsigned int>(vec.stride()),
+                                                                   alpha,
+                                                                   viennacl::cuda_arg(result),
+                                                                   static_cast<unsigned int>(result.start()),
+                                                                   static_cast<unsigned int>(result.stride()),
+                                                                   static_cast<unsigned int>(result.size()),
+                                                                   beta
+                                                                  );
     VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_matrix_vec_mul_kernel");
   }
   else
   {
-    compressed_matrix_vec_mul_adaptive_kernel<<<512, 256>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
-                                                            viennacl::cuda_arg<unsigned int>(mat.handle2()),
-                                                            viennacl::cuda_arg<unsigned int>(mat.handle3()),
-                                                            viennacl::cuda_arg<NumericT>(mat.handle()),
-                                                            static_cast<unsigned int>(mat.blocks1()),
-                                                            viennacl::cuda_arg(vec),
-                                                            static_cast<unsigned int>(vec.start()),
-                                                            static_cast<unsigned int>(vec.stride()),
-                                                            viennacl::cuda_arg(result),
-                                                            static_cast<unsigned int>(result.start()),
-                                                            static_cast<unsigned int>(result.stride()),
-                                                            static_cast<unsigned int>(result.size())
-                                                           );
+    if (alpha < NumericT(1) || alpha > NumericT(1) || beta < 0 || beta > 0)
+      compressed_matrix_vec_mul_adaptive_kernel<detail::spmv_alpha_beta><<<512, 256>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                              viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                              viennacl::cuda_arg<unsigned int>(mat.handle3()),
+                                                              viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                              static_cast<unsigned int>(mat.blocks1()),
+                                                              viennacl::cuda_arg(vec),
+                                                              static_cast<unsigned int>(vec.start()),
+                                                              static_cast<unsigned int>(vec.stride()),
+                                                              alpha,
+                                                              viennacl::cuda_arg(result),
+                                                              static_cast<unsigned int>(result.start()),
+                                                              static_cast<unsigned int>(result.stride()),
+                                                              static_cast<unsigned int>(result.size()),
+                                                              beta
+                                                             );
+    else
+      compressed_matrix_vec_mul_adaptive_kernel<detail::spmv_pure><<<512, 256>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                              viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                              viennacl::cuda_arg<unsigned int>(mat.handle3()),
+                                                              viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                              static_cast<unsigned int>(mat.blocks1()),
+                                                              viennacl::cuda_arg(vec),
+                                                              static_cast<unsigned int>(vec.start()),
+                                                              static_cast<unsigned int>(vec.stride()),
+                                                              alpha,
+                                                              viennacl::cuda_arg(result),
+                                                              static_cast<unsigned int>(result.start()),
+                                                              static_cast<unsigned int>(result.stride()),
+                                                              static_cast<unsigned int>(result.size()),
+                                                              beta
+                                                             );
     VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_matrix_vec_mul_adaptive_kernel");
   }
 }
@@ -916,18 +1023,13 @@ __global__ void compressed_compressed_matrix_vec_mul_kernel(
           const NumericT * x,
           unsigned int start_x,
           unsigned int inc_x,
+          NumericT alpha,
           NumericT * result,
           unsigned int start_result,
           unsigned int inc_result,
-          unsigned int size_result)
+          unsigned int size_result,
+          NumericT beta)
 {
-  for (unsigned int i  = blockDim.x * blockIdx.x + threadIdx.x;
-                    i  < size_result;
-                    i += gridDim.x * blockDim.x)
-  {
-    result[i * inc_result + start_result] = 0;
-  }
-
   for (unsigned int i  = blockDim.x * blockIdx.x + threadIdx.x;
                     i  < nonzero_rows;
                     i += gridDim.x * blockDim.x)
@@ -936,7 +1038,10 @@ __global__ void compressed_compressed_matrix_vec_mul_kernel(
     unsigned int row_end = row_jumper[i+1];
     for (unsigned int j = row_jumper[i]; j < row_end; ++j)
       dot_prod += elements[j] * x[column_indices[j] * inc_x + start_x];
-    result[row_indices[i] * inc_result + start_result] = dot_prod;
+
+    unsigned int index = row_indices[i] * inc_result + start_result;
+    if (beta != 0) result[index] += alpha * dot_prod;
+    else           result[index]  = alpha * dot_prod;
   }
 }
 
@@ -952,8 +1057,15 @@ __global__ void compressed_compressed_matrix_vec_mul_kernel(
 template<typename NumericT>
 void prod_impl(const viennacl::compressed_compressed_matrix<NumericT> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
+  if (beta < 0 || beta > 0)
+    viennacl::linalg::cuda::av(result, result, beta, 1, false, false);
+  else
+    result.clear();
+
   compressed_compressed_matrix_vec_mul_kernel<<<128, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
                                                             viennacl::cuda_arg<unsigned int>(mat.handle3()),
                                                             viennacl::cuda_arg<unsigned int>(mat.handle2()),
@@ -962,10 +1074,12 @@ void prod_impl(const viennacl::compressed_compressed_matrix<NumericT> & mat,
                                                             viennacl::cuda_arg(vec),
                                                             static_cast<unsigned int>(vec.start()),
                                                             static_cast<unsigned int>(vec.stride()),
+                                                            alpha,
                                                             viennacl::cuda_arg(result),
                                                             static_cast<unsigned int>(result.start()),
                                                             static_cast<unsigned int>(result.stride()),
-                                                            static_cast<unsigned int>(result.size())
+                                                            static_cast<unsigned int>(result.size()),
+                                                            beta
                                                            );
   VIENNACL_CUDA_LAST_ERROR_CHECK("compressed_compressed_matrix_vec_mul_kernel");
 }
@@ -1129,10 +1243,11 @@ __global__ void coordinate_matrix_vec_mul_kernel(const unsigned int * coords, //
                                                  const NumericT * x,
                                                  unsigned int start_x,
                                                  unsigned int inc_x,
+                                                 NumericT alpha,
                                                        NumericT * result,
                                                  unsigned int start_result,
-                                                 unsigned int inc_result
-                                                 )
+                                                 unsigned int inc_result,
+                                                 NumericT beta)
 {
   __shared__ unsigned int shared_rows[128];
   __shared__ NumericT inter_results[128];
@@ -1157,8 +1272,10 @@ __global__ void coordinate_matrix_vec_mul_kernel(const unsigned int * coords, //
     {
       if (tmp.x == shared_rows[blockDim.x-1])
         val += inter_results[blockDim.x-1];
+      else if (beta != 0)
+        result[shared_rows[blockDim.x-1] * inc_result + start_result] += alpha * inter_results[blockDim.x-1];
       else
-        result[shared_rows[blockDim.x-1] * inc_result + start_result] = inter_results[blockDim.x-1];
+        result[shared_rows[blockDim.x-1] * inc_result + start_result]  = alpha * inter_results[blockDim.x-1];
     }
 
     //segmented parallel reduction begin
@@ -1177,17 +1294,20 @@ __global__ void coordinate_matrix_vec_mul_kernel(const unsigned int * coords, //
     }
     //segmented parallel reduction end
 
-    if (local_index < group_end && threadIdx.x < blockDim.x-1 &&
+    if (local_index < group_end - 1 && threadIdx.x < blockDim.x-1 &&
         shared_rows[threadIdx.x] != shared_rows[threadIdx.x + 1])
     {
-      result[tmp.x * inc_result + start_result] = inter_results[threadIdx.x];
+      if (beta != 0) result[tmp.x * inc_result + start_result] += alpha * inter_results[threadIdx.x];
+      else           result[tmp.x * inc_result + start_result]  = alpha * inter_results[threadIdx.x];
     }
 
     __syncthreads();
   } //for k
 
-  if (local_index + 1 == group_end)
-    result[tmp.x * inc_result + start_result] = inter_results[threadIdx.x];
+  if (local_index + 1 == group_end) {
+    if (beta != 0) result[tmp.x * inc_result + start_result] += alpha * inter_results[threadIdx.x];
+    else           result[tmp.x * inc_result + start_result]  = alpha * inter_results[threadIdx.x];
+  }
 }
 
 
@@ -1202,9 +1322,14 @@ __global__ void coordinate_matrix_vec_mul_kernel(const unsigned int * coords, //
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::coordinate_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
-  result.clear();
+  if (beta < 0 || beta > 0)
+    viennacl::linalg::cuda::av(result, result, beta, 1, false, false);
+  else
+    result.clear();
 
   coordinate_matrix_vec_mul_kernel<<<64, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle12()),
                                                 viennacl::cuda_arg<NumericT>(mat.handle()),
@@ -1212,9 +1337,11 @@ void prod_impl(const viennacl::coordinate_matrix<NumericT, AlignmentV> & mat,
                                                 viennacl::cuda_arg(vec),
                                                 static_cast<unsigned int>(vec.start()),
                                                 static_cast<unsigned int>(vec.stride()),
+                                                alpha,
                                                 viennacl::cuda_arg(result),
                                                 static_cast<unsigned int>(result.start()),
-                                                static_cast<unsigned int>(result.stride())
+                                                static_cast<unsigned int>(result.stride()),
+                                                beta
                                                );
   VIENNACL_CUDA_LAST_ERROR_CHECK("coordinate_matrix_vec_mul_kernel");
 }
@@ -1617,15 +1744,17 @@ void prod_impl(const viennacl::coordinate_matrix<NumericT, AlignmentV> & sp_mat,
 // ELL Matrix
 //
 
-template<typename NumericT>
+template<typename AlphaBetaHandlerT, typename NumericT>
 __global__ void ell_matrix_vec_mul_kernel(const unsigned int * coords,
                                           const NumericT * elements,
                                           const NumericT * x,
                                           unsigned int start_x,
                                           unsigned int inc_x,
+                                          NumericT alpha,
                                                 NumericT * result,
                                           unsigned int start_result,
                                           unsigned int inc_result,
+                                          NumericT beta,
                                           unsigned int row_num,
                                           unsigned int col_num,
                                           unsigned int internal_row_num,
@@ -1652,7 +1781,7 @@ __global__ void ell_matrix_vec_mul_kernel(const unsigned int * coords,
       }
     }
 
-    result[row_id * inc_result + start_result] = sum;
+    AlphaBetaHandlerT::apply(result[row_id * inc_result + start_result], alpha, sum, beta);
   }
 }
 
@@ -1668,22 +1797,44 @@ __global__ void ell_matrix_vec_mul_kernel(const unsigned int * coords,
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::ell_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
-  ell_matrix_vec_mul_kernel<<<256, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle2()),
-                                          viennacl::cuda_arg<NumericT>(mat.handle()),
-                                          viennacl::cuda_arg(vec),
-                                          static_cast<unsigned int>(vec.start()),
-                                          static_cast<unsigned int>(vec.stride()),
-                                          viennacl::cuda_arg(result),
-                                          static_cast<unsigned int>(result.start()),
-                                          static_cast<unsigned int>(result.stride()),
-                                          static_cast<unsigned int>(mat.size1()),
-                                          static_cast<unsigned int>(mat.size2()),
-                                          static_cast<unsigned int>(mat.internal_size1()),
-                                          static_cast<unsigned int>(mat.maxnnz()),
-                                          static_cast<unsigned int>(mat.internal_maxnnz())
-                                         );
+  if (alpha < NumericT(1) || alpha > NumericT(1) || beta < 0 || beta > 0)
+    ell_matrix_vec_mul_kernel<detail::spmv_alpha_beta><<<256, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                            viennacl::cuda_arg<NumericT>(mat.handle()),
+                                            viennacl::cuda_arg(vec),
+                                            static_cast<unsigned int>(vec.start()),
+                                            static_cast<unsigned int>(vec.stride()),
+                                            alpha,
+                                            viennacl::cuda_arg(result),
+                                            static_cast<unsigned int>(result.start()),
+                                            static_cast<unsigned int>(result.stride()),
+                                            beta,
+                                            static_cast<unsigned int>(mat.size1()),
+                                            static_cast<unsigned int>(mat.size2()),
+                                            static_cast<unsigned int>(mat.internal_size1()),
+                                            static_cast<unsigned int>(mat.maxnnz()),
+                                            static_cast<unsigned int>(mat.internal_maxnnz())
+                                           );
+  else
+    ell_matrix_vec_mul_kernel<detail::spmv_pure><<<256, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                            viennacl::cuda_arg<NumericT>(mat.handle()),
+                                            viennacl::cuda_arg(vec),
+                                            static_cast<unsigned int>(vec.start()),
+                                            static_cast<unsigned int>(vec.stride()),
+                                            alpha,
+                                            viennacl::cuda_arg(result),
+                                            static_cast<unsigned int>(result.start()),
+                                            static_cast<unsigned int>(result.stride()),
+                                            beta,
+                                            static_cast<unsigned int>(mat.size1()),
+                                            static_cast<unsigned int>(mat.size2()),
+                                            static_cast<unsigned int>(mat.internal_size1()),
+                                            static_cast<unsigned int>(mat.maxnnz()),
+                                            static_cast<unsigned int>(mat.internal_maxnnz())
+                                           );
   VIENNACL_CUDA_LAST_ERROR_CHECK("ell_matrix_vec_mul_kernel");
 }
 
@@ -2043,7 +2194,7 @@ void prod_impl(const viennacl::ell_matrix<NumericT, AlignmentV> & sp_mat,
 // SELL-C-\sigma Matrix
 //
 
-template<typename NumericT>
+template<typename AlphaBetaHandlerT, typename NumericT>
 __global__ void sliced_ell_matrix_vec_mul_kernel(const unsigned int * columns_per_block,
                                                  const unsigned int * column_indices,
                                                  const unsigned int * block_start,
@@ -2052,10 +2203,12 @@ __global__ void sliced_ell_matrix_vec_mul_kernel(const unsigned int * columns_pe
                                                  unsigned int start_x,
                                                  unsigned int inc_x,
                                                  unsigned int size_x,
+                                                 NumericT alpha,
                                                  NumericT * result,
                                                  unsigned int start_result,
                                                  unsigned int inc_result,
                                                  unsigned int size_result,
+                                                 NumericT beta,
                                                  unsigned int block_size)
 {
   unsigned int blocks_per_threadblock = blockDim.x / block_size;
@@ -2080,7 +2233,7 @@ __global__ void sliced_ell_matrix_vec_mul_kernel(const unsigned int * columns_pe
     }
 
     if (row < size_result)
-      result[row * inc_result + start_result] = sum;
+      AlphaBetaHandlerT::apply(result[row * inc_result + start_result], alpha, sum, beta);
   }
 }
 
@@ -2095,21 +2248,43 @@ __global__ void sliced_ell_matrix_vec_mul_kernel(const unsigned int * columns_pe
 template<typename NumericT, typename IndexT>
 void prod_impl(const viennacl::sliced_ell_matrix<NumericT, IndexT> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
-  sliced_ell_matrix_vec_mul_kernel<<<256, 256>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
-                                                 viennacl::cuda_arg<unsigned int>(mat.handle2()),
-                                                 viennacl::cuda_arg<unsigned int>(mat.handle3()),
-                                                 viennacl::cuda_arg<NumericT>(mat.handle()),
-                                                 viennacl::cuda_arg(vec),
-                                                 static_cast<unsigned int>(vec.start()),
-                                                 static_cast<unsigned int>(vec.stride()),
-                                                 static_cast<unsigned int>(vec.size()),
-                                                 viennacl::cuda_arg(result),
-                                                 static_cast<unsigned int>(result.start()),
-                                                 static_cast<unsigned int>(result.stride()),
-                                                 static_cast<unsigned int>(result.size()),
-                                                 static_cast<unsigned int>(mat.rows_per_block())
+  if (alpha < NumericT(1) || alpha > NumericT(1) || beta < 0 || beta > 0)
+    sliced_ell_matrix_vec_mul_kernel<detail::spmv_alpha_beta><<<256, 256>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                   viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                   viennacl::cuda_arg<unsigned int>(mat.handle3()),
+                                                   viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                   viennacl::cuda_arg(vec),
+                                                   static_cast<unsigned int>(vec.start()),
+                                                   static_cast<unsigned int>(vec.stride()),
+                                                   static_cast<unsigned int>(vec.size()),
+                                                   alpha,
+                                                   viennacl::cuda_arg(result),
+                                                   static_cast<unsigned int>(result.start()),
+                                                   static_cast<unsigned int>(result.stride()),
+                                                   static_cast<unsigned int>(result.size()),
+                                                   beta,
+                                                   static_cast<unsigned int>(mat.rows_per_block())
+                                                                   );
+  else
+    sliced_ell_matrix_vec_mul_kernel<detail::spmv_pure><<<256, 256>>>(viennacl::cuda_arg<unsigned int>(mat.handle1()),
+                                                   viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                                   viennacl::cuda_arg<unsigned int>(mat.handle3()),
+                                                   viennacl::cuda_arg<NumericT>(mat.handle()),
+                                                   viennacl::cuda_arg(vec),
+                                                   static_cast<unsigned int>(vec.start()),
+                                                   static_cast<unsigned int>(vec.stride()),
+                                                   static_cast<unsigned int>(vec.size()),
+                                                   alpha,
+                                                   viennacl::cuda_arg(result),
+                                                   static_cast<unsigned int>(result.start()),
+                                                   static_cast<unsigned int>(result.stride()),
+                                                   static_cast<unsigned int>(result.size()),
+                                                   beta,
+                                                   static_cast<unsigned int>(mat.rows_per_block())
                                                                  );
   VIENNACL_CUDA_LAST_ERROR_CHECK("sliced_ell_matrix_vec_mul_kernel");
 }
@@ -2120,7 +2295,7 @@ void prod_impl(const viennacl::sliced_ell_matrix<NumericT, IndexT> & mat,
 //
 
 
-template<typename NumericT>
+template<typename AlphaBetaHandlerT, typename NumericT>
 __global__ void hyb_matrix_vec_mul_kernel(const unsigned int * ell_coords,
                                           const NumericT * ell_elements,
                                           const unsigned int * csr_rows,
@@ -2129,9 +2304,11 @@ __global__ void hyb_matrix_vec_mul_kernel(const unsigned int * ell_coords,
                                           const NumericT * x,
                                           unsigned int start_x,
                                           unsigned int inc_x,
+                                          NumericT alpha,
                                                 NumericT * result,
                                           unsigned int start_result,
                                           unsigned int inc_result,
+                                          NumericT beta,
                                           unsigned int row_num,
                                           unsigned int internal_row_num,
                                           unsigned int items_per_row,
@@ -2164,7 +2341,7 @@ __global__ void hyb_matrix_vec_mul_kernel(const unsigned int * ell_coords,
     for (unsigned int item_id = col_begin; item_id < col_end; item_id++)
       sum += x[csr_cols[item_id] * inc_x + start_x] * csr_elements[item_id];
 
-    result[row_id * inc_result + start_result] = sum;
+    AlphaBetaHandlerT::apply(result[row_id * inc_result + start_result], alpha, sum, beta);
   }
 }
 
@@ -2181,24 +2358,48 @@ __global__ void hyb_matrix_vec_mul_kernel(const unsigned int * ell_coords,
 template<typename NumericT, unsigned int AlignmentV>
 void prod_impl(const viennacl::hyb_matrix<NumericT, AlignmentV> & mat,
                const viennacl::vector_base<NumericT> & vec,
-                     viennacl::vector_base<NumericT> & result)
+               NumericT alpha,
+                     viennacl::vector_base<NumericT> & result,
+               NumericT beta)
 {
-  hyb_matrix_vec_mul_kernel<<<256, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle2()),
-                                          viennacl::cuda_arg<NumericT>(mat.handle()),
-                                          viennacl::cuda_arg<unsigned int>(mat.handle3()),
-                                          viennacl::cuda_arg<unsigned int>(mat.handle4()),
-                                          viennacl::cuda_arg<NumericT>(mat.handle5()),
-                                          viennacl::cuda_arg(vec),
-                                          static_cast<unsigned int>(vec.start()),
-                                          static_cast<unsigned int>(vec.stride()),
-                                          viennacl::cuda_arg(result),
-                                          static_cast<unsigned int>(result.start()),
-                                          static_cast<unsigned int>(result.stride()),
-                                          static_cast<unsigned int>(mat.size1()),
-                                          static_cast<unsigned int>(mat.internal_size1()),
-                                          static_cast<unsigned int>(mat.ell_nnz()),
-                                          static_cast<unsigned int>(mat.internal_ellnnz())
-                                         );
+  if (alpha < NumericT(1) || alpha > NumericT(1) || beta < 0 || beta > 0)
+    hyb_matrix_vec_mul_kernel<detail::spmv_alpha_beta><<<256, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                            viennacl::cuda_arg<NumericT>(mat.handle()),
+                                            viennacl::cuda_arg<unsigned int>(mat.handle3()),
+                                            viennacl::cuda_arg<unsigned int>(mat.handle4()),
+                                            viennacl::cuda_arg<NumericT>(mat.handle5()),
+                                            viennacl::cuda_arg(vec),
+                                            static_cast<unsigned int>(vec.start()),
+                                            static_cast<unsigned int>(vec.stride()),
+                                            alpha,
+                                            viennacl::cuda_arg(result),
+                                            static_cast<unsigned int>(result.start()),
+                                            static_cast<unsigned int>(result.stride()),
+                                            beta,
+                                            static_cast<unsigned int>(mat.size1()),
+                                            static_cast<unsigned int>(mat.internal_size1()),
+                                            static_cast<unsigned int>(mat.ell_nnz()),
+                                            static_cast<unsigned int>(mat.internal_ellnnz())
+                                           );
+  else
+    hyb_matrix_vec_mul_kernel<detail::spmv_pure><<<256, 128>>>(viennacl::cuda_arg<unsigned int>(mat.handle2()),
+                                            viennacl::cuda_arg<NumericT>(mat.handle()),
+                                            viennacl::cuda_arg<unsigned int>(mat.handle3()),
+                                            viennacl::cuda_arg<unsigned int>(mat.handle4()),
+                                            viennacl::cuda_arg<NumericT>(mat.handle5()),
+                                            viennacl::cuda_arg(vec),
+                                            static_cast<unsigned int>(vec.start()),
+                                            static_cast<unsigned int>(vec.stride()),
+                                            alpha,
+                                            viennacl::cuda_arg(result),
+                                            static_cast<unsigned int>(result.start()),
+                                            static_cast<unsigned int>(result.stride()),
+                                            beta,
+                                            static_cast<unsigned int>(mat.size1()),
+                                            static_cast<unsigned int>(mat.internal_size1()),
+                                            static_cast<unsigned int>(mat.ell_nnz()),
+                                            static_cast<unsigned int>(mat.internal_ellnnz())
+                                           );
   VIENNACL_CUDA_LAST_ERROR_CHECK("hyb_matrix_vec_mul_kernel");
 }
 
