@@ -8,6 +8,7 @@ before_install:
 
 env:
  global:
+   - _R_CHECK_FORCE_SUGGESTS_: FALSE
    - CRAN: http://cran.rstudio.com
 
 notifications:
