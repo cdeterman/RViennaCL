@@ -2,7 +2,7 @@ Package: RViennaCL
 Type: Package
 Title: ViennaCL C++ Header Files
 Version: 1.7.1-1
-Date: 2016-01-21
+Date: 2016-03-07
 Author: Charles Determan Jr.
 Maintainer: Charles Determan Jr <cdetermanjr@gmail.com>
 Description: ViennaCL is a free open-source linear algebra library 
