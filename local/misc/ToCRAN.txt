@@ -1,0 +1,26 @@
+CRAN submission ViennaCL headers 1.7.0-0
+
+I have read and agreed to the CRAN policies.  I note that
+the package is larger than usually recommended, and explain
+the reason for this, below.  In particular, it will ultimately
+lead to saving space on CRAN and improving package efficiency.
+
+Overview: This package aims to provide the ViennaCL headers 
+for template use among CRAN packages.  This
+offers a more efficient distribution system for CRAN because
+replication of this code is avoided.
+
+Benefits: 
+
+(1) Immediately: the additional package gpuR heavily uses ViennaCL headers.
+This allows for very rapid and efficient development of GPU enhanced functions
+to greatly increase processing performance.  
+
+(2) The future: Although gpuR provides many basic functionality, it is likely 
+that developers may want additional C++ routines that use additional aspects of 
+ViennaCL. I hope this will pay off down the road with increasing use of 
+ViennaCL.
+
+Thanks,
+
+Charles

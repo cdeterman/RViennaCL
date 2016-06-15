@@ -11,9 +11,9 @@
 pkgdir="${HOME}/RViennaCL"
 ## -- current ViennaCL version, placed eg in ${pkgdir}/local/
 viennacltargz="ViennaCL-1.7.1.tar.gz"
-date="2015-09-03"
+date="2016-06-15"
 ## -- state if development version from github
-dev=false
+dev=true
 
 ## Internal constants/variables
 ## local directory
@@ -65,7 +65,7 @@ echo "Unpacking ${viennacltargz} into LocalDIR (ie ${localdir})."
 echo "Copying ViennaCL files from ${viennaclRoot} into inst/incl Dir (ie ${pkgincl})"
 if [ "$dev" = true ]; then
 	echo "using development version"
-	cp -r ${viennaclRoot}/viennacl-dev-master/viennacl/ ${pkgincl}
+	cp -r ${viennaclRoot}/viennacl-dev/viennacl/ ${pkgincl}
   #echo "copying CL files"
   #cp -r ${viennaclRoot}/viennacl-dev-master/CL/ ${pkgincl}
 else
