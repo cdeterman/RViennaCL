@@ -26,8 +26,8 @@
 
 
 // Note: Boost.uBLAS is required at the moment
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
+// #include <boost/numeric/ublas/vector.hpp>
+// #include <boost/numeric/ublas/matrix.hpp>
 
 
 #include <cmath>
@@ -510,10 +510,10 @@ namespace viennacl
       detail::bidiag(A, QL, QR);
 
       // second stage
-      //std::vector<SCALARTYPE> dh(to, 0);
-      //std::vector<SCALARTYPE> sh(to + 1, 0);
-      boost::numeric::ublas::vector<SCALARTYPE> dh = boost::numeric::ublas::scalar_vector<SCALARTYPE>(to, 0);
-      boost::numeric::ublas::vector<SCALARTYPE> sh = boost::numeric::ublas::scalar_vector<SCALARTYPE>(to + 1, 0);
+      std::vector<SCALARTYPE> dh(to, 0);
+      std::vector<SCALARTYPE> sh(to + 1, 0);
+      // boost::numeric::ublas::vector<SCALARTYPE> dh = boost::numeric::ublas::scalar_vector<SCALARTYPE>(to, 0);
+      // boost::numeric::ublas::vector<SCALARTYPE> sh = boost::numeric::ublas::scalar_vector<SCALARTYPE>(to + 1, 0);
 
 
       viennacl::linalg::opencl::bidiag_pack_svd(A, dh, sh);
@@ -521,11 +521,18 @@ namespace viennacl
       detail::svd_qr_shift( QL, QR, dh, sh);
 
       // Write resulting diagonal matrix with singular values to A:
-      boost::numeric::ublas::matrix<SCALARTYPE> h_Sigma(row_num, col_num);
-      h_Sigma.clear();
+      // boost::numeric::ublas::matrix<SCALARTYPE> h_Sigma(row_num, col_num);
+      
+      std::vector<std::vector<SCALARTYPE> > h_Sigma(row_num);
+      for (unsigned int i = 0; i < row_num; ++i) {
+        h_Sigma[i].resize(col_num);
+      }
+      
+      // h_Sigma.clear();
 
       for (vcl_size_t i = 0; i < to; i++)
-        h_Sigma(i, i) = dh[i];
+        // h_Sigma(i, i) = dh[i];
+        h_Sigma[i][i] = dh[i];
 
       copy(h_Sigma, A);
     }
