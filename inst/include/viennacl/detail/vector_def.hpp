@@ -300,6 +300,8 @@ public:
 
   /** @brief Resets all entries to zero. Does not change the size of the vector. */
   void clear();
+  
+  void switch_memory_context(viennacl::context new_ctx);
 
 protected:
 
@@ -310,8 +312,6 @@ protected:
 
   /** @brief Pads vectors with alignment > 1 with trailing zeros if the internal size is larger than the visible size */
   void pad();
-
-  void switch_memory_context(viennacl::context new_ctx);
 
   //TODO: Think about implementing the following public member functions
   //void insert_element(unsigned int i, NumericT val){}

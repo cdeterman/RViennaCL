@@ -25,8 +25,8 @@
 #include "viennacl/linalg/tql2.hpp"
 #include "viennacl/linalg/prod.hpp"
 
-// #include <boost/numeric/ublas/vector.hpp>
-// #include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
 
 /** @file viennacl/linalg/qr-method.hpp
     @brief Implementation of the QR method for eigenvalue computations. Experimental.
@@ -770,30 +770,21 @@ void update_float_QR_column_gpu(matrix_base<SCALARTYPE> & A,
         }
 
 
-        std::vector<std::vector<SCALARTYPE> > eigen_values(A.size1());
-        for (unsigned int i = 0; i < A.size1(); ++i) {
-          eigen_values[i].resize(A.size1());
-        }
-        // boost::numeric::ublas::matrix<SCALARTYPE> eigen_values(A.size1(), A.size1());
-        // eigen_values.clear();
+        boost::numeric::ublas::matrix<SCALARTYPE> eigen_values(A.size1(), A.size1());
+        eigen_values.clear();
 
         for (vcl_size_t i = 0; i < A.size1(); i++)
         {
             if(std::fabs(E[i]) < EPS)
             {
-              // eigen_values(i, i) = D[i];
-              eigen_values[i][i] = D[i];
+                eigen_values(i, i) = D[i];
             }
             else
             {
-              // eigen_values(i, i) = D[i];
-              // eigen_values(i, i + 1) = E[i];
-              // eigen_values(i + 1, i) = -E[i];
-              // eigen_values(i + 1, i + 1) = D[i];
-              eigen_values[i][i] = D[i];
-              eigen_values[i][i + 1] = E[i];
-              eigen_values[i + 1][i] = -E[i];
-              eigen_values[i + 1][i + 1] = D[i];
+                eigen_values(i, i) = D[i];
+                eigen_values(i, i + 1) = E[i];
+                eigen_values(i + 1, i) = -E[i];
+                eigen_values(i + 1, i + 1) = D[i];
                 i++;
             }
         }

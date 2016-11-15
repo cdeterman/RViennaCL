@@ -11,9 +11,9 @@
 pkgdir="${HOME}/RViennaCL"
 ## -- current ViennaCL version, placed eg in ${pkgdir}/local/
 viennacltargz="ViennaCL-1.7.1.tar.gz"
-date="2016-06-15"
+date="2016-11-01"
 ## -- state if development version from github
-dev=true
+dev=false
 
 ## Internal constants/variables
 ## local directory
@@ -70,17 +70,38 @@ if [ "$dev" = true ]; then
   #cp -r ${viennaclRoot}/viennacl-dev-master/CL/ ${pkgincl}
 else
   echo "using released version"
-	cp -r ${viennaclRoot}/${viennaclVer}/viennacl/ ${pkgincl}
+	# cp -r ${viennaclRoot}/${viennaclVer}/viennacl/ ${pkgincl}
+	cp -r ${viennaclRoot}/viennacl/ ${pkgincl}
   #echo "copying CL files"
   #cp -r ${viennaclRoot}/${viennaclVer}/viennacl/CL/ ${pkgincl}
 fi
 
 echo "Changing all std::cout/std::cerr to Rcpp equivalent"
 cd ${pkgincl}
+#python ${localdir}/rcpp_vcl_regex.py
+
 grep -rl "std::cout" viennacl | xargs sed -i s@"std::cout"@"Rcpp::Rcout"@g
 grep -rl "std::cerr" viennacl | xargs sed -i s@"std::cerr"@"Rcpp::Rcerr"@g
 
+# grep -rl "// std::cout" viennacl | xargs sed -i s@"// std::cout"@"//std::cout"@g
+# grep -rl "// std::cerr" viennacl | xargs sed -i s@"// std::cerr"@"//std::cerr"@g
+# echo "removed spaces"
+# grep -rl " std::cout" viennacl | xargs sed -i s@" std::cout"@"\n#ifndef NO_RCPP_OUTPUT\nRcpp::Rcout"@g
+# echo "changed couts"
+# grep -rl " std::cerr" viennacl | xargs sed -i s@" std::cerr"@"\n#ifndef NO_RCPP_OUTPUT\nRcpp::Rcerr"@g
+# echo "change cerrs"
+# grep -rl "std::endl;" viennacl | xargs sed -i "/^Rcpp/s@std::endl;@std::endl;\n#endif"@g
+# echo "added endifs"
+# grep -rl "std::endl;" viennacl | xargs sed -i "/^Rcpp.*break;$/s@break;@break;\n#endif"@g
+# echo "added break endifs"
+# grep -rl "Rcpp::Rcerr" viennacl | xargs sed -iE "/^Rcpp::Rcerr.*/s@;@;\n#endif@"
+
+# ^std::cout.*(?<!std::endl;)$
+#^Rcpp.*(?<!\bstd::endl;)$
+#grep -rl " Rcpp::Rcerr.* std::endl;" viennacl | xargs sed -i s@"std::endl;"@"std::endl;\n#endif"@g
+
 echo "Adding Rcpp.h to files"
+#grep -rl "^namespace viennacl" viennacl | xargs sed -i s@"^namespace viennacl"@"#ifndef NO_RCPP_OUTPUT\n#include <Rcpp.h>\n#endif\nnamespace viennacl"@g
 grep -rl "^namespace viennacl" viennacl | xargs sed -i s@"^namespace viennacl"@"#include <Rcpp.h>\nnamespace viennacl"@g
 
 echo "shortening long device paths"
@@ -101,10 +122,16 @@ find . -depth -exec rename 's/geforce/ge/g' {} +
 # grep -rl "volcani_islands" viennacl | xargs sed -i s@"volcanic_islands"@"vi"@g
 
 grep -rl "^#include.*nvidia" viennacl | xargs sed -i 's/nvidia\//nv\//g'
+echo "nvidia complete"
 grep -rl "^#include.*fermi" viennacl | xargs sed -i 's/fermi\//f\//g'
+echo "fermi complete"
 grep -rl "^#include.*maxwell" viennacl | xargs sed -i 's/maxwell\//m\//g'
+echo "maxwell complete"
 grep -rl "^#include.*kepler" viennacl | xargs sed -i 's/kepler\//k\//g'
+echo "kepler complete"
 grep -rl "^#include.*geforce" viennacl | xargs sed -i 's/\/geforce/\/ge/g'
+echo "geforce complete"
+
 grep -rl "^#include.*evergreen" viennacl | xargs sed -i 's/evergreen\//ev\//g'
 grep -rl "^#include.*northern_islands" viennacl | xargs sed -i 's/northern_islands\//ni\//g'
 grep -rl "^#include.*southern_islands" viennacl | xargs sed -i 's/southern_islands\//si\//g'
