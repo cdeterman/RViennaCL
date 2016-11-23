@@ -1,7 +1,7 @@
 ## RViennaCL: ViennaCL Headers for R  
 [![Build Status](https://travis-ci.org/cdeterman/RViennaCL.svg)](https://travis-ci.org/cdeterman/RViennaCL) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/cdeterman/RViennaCL?branch=master)](https://ci.appveyor.com/project/cdeterman/RViennaCL) [![Downloads](http://cranlogs.r-pkg.org/badges/RViennaCL?color=brightgreen)](http://www.r-pkg.org/pkg/RViennaCL)
 
-This package provides [R](http://www.r-project.org) with access to
+This package provides [R](CRAN.R-project.org) with access to
 [ViennaCL](http://viennacl.sourceforge.net/) header files.  
 [ViennaCL](http://viennacl.sourceforge.net/) provides a free C++ source 
 library for simple computing on multi-core architectures (GPU, MIC) and
@@ -10,7 +10,7 @@ includes BLAS level 1-3 support and linear algebra solvers.
 
 This package aims to provide a simple means of linking to the 
 [ViennaCL](http://viennacl.sourceforge.net/) header files for use among CRAN
-packages. Similar to the popular R package [BH](http://cran.r-project.org/web/packages/BH/index.html), 
+packages. Similar to the popular R package [BH](https://CRAN.R-project.org/package=BH), 
 by placing these libraries in this package, we offer a more
 efficient distribution system for CRAN as replication of this code in the
 sources of other packages is avoided.
