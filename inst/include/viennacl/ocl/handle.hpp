@@ -190,6 +190,7 @@ namespace viennacl
         operator OCL_TYPE() const { return h_; }
 
         const OCL_TYPE & get() const { return h_; }
+	OCL_TYPE & get() { return h_; }
 
         viennacl::ocl::context const & context() const
         {
