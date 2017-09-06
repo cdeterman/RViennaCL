@@ -91,6 +91,8 @@ namespace viennacl
         viennacl::ocl::context & ctx = const_cast<viennacl::ocl::context &>(viennacl::traits::opencl_handle(matrix).context());
         viennacl::ocl::kernel & kernel = ctx.get_kernel(viennacl::linalg::opencl::kernels::svd<CPU_ScalarType>::program_name(), SVD_INVERSE_SIGNS_KERNEL);
 
+        cl_device_type type_check = ctx.current_device().type();
+        
         kernel.global_work_size(0, viennacl::tools::align_to_multiple<vcl_size_t>(viennacl::traits::size1(matrix), 16));
         kernel.global_work_size(1, viennacl::tools::align_to_multiple<vcl_size_t>(viennacl::traits::size2(matrix), 16));
 
