@@ -103,7 +103,6 @@ namespace viennacl
           kernel.local_work_size(0, 16);
           kernel.local_work_size(1, 16);
         }
-        
 
         viennacl::ocl::enqueue(kernel(
                                       matrix,

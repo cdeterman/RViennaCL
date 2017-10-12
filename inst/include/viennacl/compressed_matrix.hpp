@@ -94,6 +94,59 @@ namespace detail
 // host to device:
 //
 
+
+/** @brief Copies a sparse matrix in CSR-format (three arrays) from the host to the device (either GPU or multi-core CPU)
+  *
+  * @param csr_rows     The array containing the start and stop indices in the column and element array for each row (length rows+1)
+  * @param csr_cols     The array containing the column indices
+  * @param csr_elements The nonzero entries
+  * @param num_rows     The number of rows in the CSR matrix
+  * @param num_cols     The number of columns in the CSR matrix
+  * @param num_nnz      The number of nonzers in the CSR matrix
+  * @param gpu_matrix   A compressed_matrix from ViennaCL
+  */
+template<typename IndexT, typename NumericT, unsigned int AlignmentV>
+void copy(const IndexT   *csr_rows,
+          const IndexT   *csr_cols,
+          const NumericT *csr_elements,
+          vcl_size_t num_rows,
+          vcl_size_t num_cols,
+          vcl_size_t num_nnz,
+          compressed_matrix<NumericT, AlignmentV> & gpu_matrix)
+{
+  if ( num_rows > 0 && num_cols > 0 && num_nnz > 0)
+  {
+    viennacl::backend::typesafe_host_array<unsigned int> row_buffer(gpu_matrix.handle1(), num_rows + 1);
+
+    if (sizeof(IndexT) != row_buffer.element_size()) // check whether indices are of the same length (same number of bits)
+    {
+      viennacl::backend::typesafe_host_array<unsigned int> col_buffer(gpu_matrix.handle2(), num_nnz);
+
+      for (vcl_size_t i=0; i<=num_rows; ++i)
+        row_buffer.set(i, csr_rows[i]);
+      for (vcl_size_t i=0; i<num_nnz; ++i)
+        col_buffer.set(i, csr_cols[i]);
+
+      gpu_matrix.set(row_buffer.get(),
+                     col_buffer.get(),
+                     csr_elements,
+                     num_rows,
+                     num_cols,
+                     num_nnz);
+    }
+    else
+    {
+      gpu_matrix.set(static_cast<const void*>(csr_rows),
+                     static_cast<const void*>(csr_cols),
+                     csr_elements,
+                     num_rows,
+                     num_cols,
+                     num_nnz);
+    }
+  }
+}
+
+
 //provide copy-operation:
 /** @brief Copies a sparse matrix from the host to the OpenCL device (either GPU or multi-core CPU)
   *
@@ -177,10 +230,19 @@ void copy(const boost::numeric::ublas::compressed_matrix<ScalarType, F, IB, IA, 
   assert( (gpu_matrix.size1() == 0 || viennacl::traits::size1(ublas_matrix) == gpu_matrix.size1()) && bool("Size mismatch") );
   assert( (gpu_matrix.size2() == 0 || viennacl::traits::size2(ublas_matrix) == gpu_matrix.size2()) && bool("Size mismatch") );
 
-  //we just need to copy the CSR arrays:
   viennacl::backend::typesafe_host_array<unsigned int> row_buffer(gpu_matrix.handle1(), ublas_matrix.size1() + 1);
-  for (vcl_size_t i=0; i<=ublas_matrix.size1(); ++i)
-    row_buffer.set(i, ublas_matrix.index1_data()[i]);
+
+  typedef typename boost::numeric::ublas::compressed_matrix<ScalarType, F, IB, IA, TA>::const_iterator1 iterator1_t;
+  typedef typename boost::numeric::ublas::compressed_matrix<ScalarType, F, IB, IA, TA>::const_iterator2 iterator2_t;
+
+  unsigned int r = 0;
+  row_buffer.set(0, 0);
+  for (iterator1_t it1 = ublas_matrix.begin1(); it1 != ublas_matrix.end1(); it1++)
+  {
+    for (iterator2_t it2 = it1.begin(); it2 != it1.end(); it2++)
+      ++r;
+    row_buffer.set(it1.index1() + 1, r);
+  }
 
   viennacl::backend::typesafe_host_array<unsigned int> col_buffer(gpu_matrix.handle2(), ublas_matrix.nnz());
   for (vcl_size_t i=0; i<ublas_matrix.nnz(); ++i)
@@ -559,6 +621,7 @@ void copy(compressed_matrix<NumericT, AlignmentV> & gpu_matrix,
 template<class NumericT, unsigned int AlignmentV /* see VCLForwards.h */>
 class compressed_matrix
 {
+  typedef compressed_matrix<NumericT, AlignmentV>                                                  self_type;
 public:
   typedef viennacl::backend::mem_handle                                                              handle_type;
   typedef scalar<typename viennacl::tools::CHECK_SCALAR_TEMPLATE_ARGUMENT<NumericT>::ResultType>   value_type;
@@ -768,6 +831,33 @@ public:
     viennacl::linalg::prod_impl(proxy.lhs(), proxy.rhs(), *this);
     generate_row_block_information();
   }
+
+
+  compressed_matrix(compressed_matrix const & other) :
+    rows_(other.size1()), cols_(other.size2()), nonzeros_(other.nnz()), row_block_num_(other.row_block_num_)
+  {
+    viennacl::context const & ctx = viennacl::traits::context(other);
+
+    row_buffer_.switch_active_handle_id(ctx.memory_type());
+    col_buffer_.switch_active_handle_id(ctx.memory_type());
+    elements_.switch_active_handle_id(ctx.memory_type());
+    row_blocks_.switch_active_handle_id(ctx.memory_type());
+
+    if (rows_ > 0)
+    {
+      viennacl::backend::memory_create(row_buffer_, viennacl::backend::typesafe_host_array<unsigned int>().element_size() * (rows_ + 1), ctx);
+    }
+    if (nonzeros_ > 0)
+    {
+      viennacl::backend::memory_create(col_buffer_, viennacl::backend::typesafe_host_array<unsigned int>().element_size() * nonzeros_, ctx);
+      viennacl::backend::memory_create(elements_, sizeof(NumericT) * nonzeros_, ctx);
+    }
+    if (row_block_num_ > 0)
+      viennacl::backend::memory_create(row_blocks_, viennacl::backend::typesafe_host_array<unsigned int>().element_size() * (row_block_num_ + 1), ctx);
+
+    self_type::operator=(other);
+  }
+
 
   /** @brief Assignment a compressed matrix from possibly another memory domain. */
   compressed_matrix & operator=(compressed_matrix const & other)
@@ -1086,12 +1176,6 @@ public:
                                        viennacl::traits::context(row_buffer_), row_blocks.get());
 
   }
-
-private:
-  // /** @brief Copy constructor is by now not available. */
-  //compressed_matrix(compressed_matrix const &);
-
-private:
 
   vcl_size_t rows_;
   vcl_size_t cols_;

@@ -396,8 +396,9 @@ public:
     cl_program temp = 0;
 
     //
-    // Retrieves the program in the cache
+    // Retrieve the program from the cache if it is already there
     //
+    bool is_cached = false;
     if (cache_path_.size())
     {
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)
@@ -407,14 +408,15 @@ public:
       std::string prefix;
       for(std::vector< viennacl::ocl::device >::const_iterator it = devices_.begin(); it != devices_.end(); ++it)
         prefix += it->name() + it->vendor() + it->driver_version();
-      std::string sha1 = tools::sha1(prefix + source);
+      std::string sha1 = tools::sha1(prefix + source + build_options_);
 
       std::ifstream cached((cache_path_+sha1).c_str(),std::ios::binary);
       if (cached)
       {
+        is_cached = true;
+
         vcl_size_t len;
         std::vector<unsigned char> buffer;
-
         cached.read((char*)&len, sizeof(vcl_size_t));
         buffer.resize(len);
         cached.read((char*)(&buffer[0]), std::streamsize(len));
@@ -456,10 +458,30 @@ public:
     }
     VIENNACL_ERR_CHECK(err);
 
+
+    programs_.push_back(tools::shared_ptr<ocl::program>(new ocl::program(temp, *this, prog_name)));
+    viennacl::ocl::program & prog = *programs_.back();
+
     //
-    // Store the program in the cache
+    // Extract kernels
     //
-    if (cache_path_.size())
+    cl_kernel kernels[1024];
+    cl_uint   num_kernels_in_prog;
+    err = clCreateKernelsInProgram(prog.handle().get(), 1024, kernels, &num_kernels_in_prog);
+    VIENNACL_ERR_CHECK(err);
+
+    for (cl_uint i=0; i<num_kernels_in_prog; ++i)
+    {
+      char kernel_name[128];
+      err = clGetKernelInfo(kernels[i], CL_KERNEL_FUNCTION_NAME, 128, kernel_name, NULL);
+      prog.add_kernel(kernels[i], std::string(kernel_name));
+    }
+
+
+    //
+    // Store the program into the cache if it is not already there
+    //
+    if (cache_path_.size() && !is_cached)
     {
       vcl_size_t len;
 
@@ -477,7 +499,7 @@ public:
       std::string prefix;
       for(std::vector< viennacl::ocl::device >::const_iterator it = devices_.begin(); it != devices_.end(); ++it)
         prefix += it->name() + it->vendor() + it->driver_version();
-      std::string sha1 = tools::sha1(prefix + source);
+      std::string sha1 = tools::sha1(prefix + source + build_options_);
       std::ofstream cached((cache_path_+sha1).c_str(),std::ios::binary);
 
       cached.write((char*)&sizes[0], sizeof(vcl_size_t));
@@ -487,26 +509,6 @@ public:
         delete[] binaries[i];
 
       VIENNACL_ERR_CHECK(err);
-    }
-
-
-    programs_.push_back(tools::shared_ptr<ocl::program>(new ocl::program(temp, *this, prog_name)));
-
-    viennacl::ocl::program & prog = *programs_.back();
-
-    //
-    // Extract kernels
-    //
-    cl_kernel kernels[1024];
-    cl_uint   num_kernels_in_prog;
-    err = clCreateKernelsInProgram(prog.handle().get(), 1024, kernels, &num_kernels_in_prog);
-    VIENNACL_ERR_CHECK(err);
-
-    for (cl_uint i=0; i<num_kernels_in_prog; ++i)
-    {
-      char kernel_name[128];
-      err = clGetKernelInfo(kernels[i], CL_KERNEL_FUNCTION_NAME, 128, kernel_name, NULL);
-      prog.add_kernel(kernels[i], std::string(kernel_name));
     }
 
 #if defined(VIENNACL_DEBUG_ALL) || defined(VIENNACL_DEBUG_CONTEXT)

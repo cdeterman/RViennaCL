@@ -8,12 +8,12 @@
 ## Version Variables
 ##
 ## -- standard git checkout
-pkgdir="${HOME}/RViennaCL"
+pkgdir="/var/RViennaCL"
 ## -- current ViennaCL version, placed eg in ${pkgdir}/local/
 viennacltargz="ViennaCL-1.7.1.tar.gz"
-date="2016-11-01"
+date="2017-10-12"
 ## -- state if development version from github
-dev=false
+dev=true
 
 ## Internal constants/variables
 ## local directory

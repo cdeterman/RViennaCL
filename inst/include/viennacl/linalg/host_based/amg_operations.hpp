@@ -1430,7 +1430,7 @@ void amg_transpose(compressed_matrix<NumericT> const & A,
   for (std::size_t row = 0; row < B.size1(); ++row)
   {
     unsigned int offset = scratchpad[row];
-    for (std::size_t i = 1; i<threads; ++i)
+    for (std::size_t i = 1; i<static_cast<std::size_t>(threads); ++i)
     {
       unsigned int tmp = scratchpad[i*(B.size1()+1) + row];
       scratchpad[i*(B.size1()+1) + row] = offset;
@@ -1453,7 +1453,7 @@ void amg_transpose(compressed_matrix<NumericT> const & A,
   {
     unsigned int row_offset = scratchpad[row];
     B_row_buffer[row] = row_offset;
-    for (std::size_t i = 1; i<threads; ++i)
+    for (std::size_t i = 1; i<std::size_t(threads); ++i)
       scratchpad[i*(B.size1()+1) + row] += row_offset;
   }
   B_row_buffer[B.size1()] = scratchpad[B.size1()];
@@ -1477,7 +1477,7 @@ void amg_transpose(compressed_matrix<NumericT> const & A,
     for (unsigned int nnz_index = row_start; nnz_index < row_stop; ++nnz_index)
     {
       unsigned int col_in_A = A_col_buffer[nnz_index];
-      unsigned int array_index = thread_id * (B.size1()+1) + col_in_A;
+      unsigned int array_index = thread_id * static_cast<unsigned int>(B.size1()+1) + col_in_A;
       unsigned int B_nnz_index = scratchpad[array_index];
       scratchpad[array_index] += 1;
       B_col_buffer[B_nnz_index] = static_cast<unsigned int>(row);

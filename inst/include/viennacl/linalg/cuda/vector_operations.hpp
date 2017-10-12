@@ -866,6 +866,7 @@ void vector_swap(vector_base<NumericT> & vec1, vector_base<NumericT> & vec2)
 
 ///////////////////////// Binary Elementwise operations /////////////
 
+// v1 = OP(v2, v3)
 template<typename NumericT>
 __global__ void element_op_kernel(NumericT * vec1,
                                    unsigned int start1,
@@ -908,6 +909,96 @@ __global__ void element_op_kernel(NumericT * vec1,
                       i += gridDim.x * blockDim.x)
     {
       vec1[i*inc1+start1] = vec2[i*inc2+start2] * vec3[i*inc3+start3];
+    }
+  }
+}
+
+// v1 = OP(v2, alpha)
+template<typename NumericT>
+__global__ void element_op_kernel(NumericT * vec1,
+                                   unsigned int start1,
+                                   unsigned int inc1,
+                                   unsigned int size1,
+
+                                   NumericT const * vec2,
+                                   unsigned int start2,
+                                   unsigned int inc2,
+
+                                   NumericT alpha,
+
+                                   unsigned int op_type
+                                 )
+{
+  if (op_type == 2)
+  {
+    for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                      i < size1;
+                      i += gridDim.x * blockDim.x)
+    {
+      vec1[i*inc1+start1] = pow(vec2[i*inc2+start2], alpha);
+    }
+  }
+  else if (op_type == 1)
+  {
+    for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                      i < size1;
+                      i += gridDim.x * blockDim.x)
+    {
+      vec1[i*inc1+start1] = vec2[i*inc2+start2] / alpha;
+    }
+  }
+  else if (op_type == 0)
+  {
+    for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                      i < size1;
+                      i += gridDim.x * blockDim.x)
+    {
+      vec1[i*inc1+start1] = vec2[i*inc2+start2] * alpha;
+    }
+  }
+}
+
+// v1 = OP(alpha, v3)
+template<typename NumericT>
+__global__ void element_op_kernel(NumericT * vec1,
+                                   unsigned int start1,
+                                   unsigned int inc1,
+                                   unsigned int size1,
+
+                                   NumericT alpha,
+
+                                   NumericT const * vec3,
+                                   unsigned int start3,
+                                   unsigned int inc3,
+
+                                   unsigned int op_type
+                                 )
+{
+  if (op_type == 2)
+  {
+    for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                      i < size1;
+                      i += gridDim.x * blockDim.x)
+    {
+      vec1[i*inc1+start1] = pow(alpha, vec3[i*inc3+start3]);
+    }
+  }
+  else if (op_type == 1)
+  {
+    for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                      i < size1;
+                      i += gridDim.x * blockDim.x)
+    {
+      vec1[i*inc1+start1] = alpha / vec3[i*inc3+start3];
+    }
+  }
+  else if (op_type == 0)
+  {
+    for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x;
+                      i < size1;
+                      i += gridDim.x * blockDim.x)
+    {
+      vec1[i*inc1+start1] = alpha * vec3[i*inc3+start3];
     }
   }
 }
@@ -982,6 +1073,7 @@ void element_op(vector_base<NumericT> & vec1,
   VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
 }
 
+// v1 = OP(v2, v3), float
 template<typename OpT>
 void element_op(vector_base<float> & vec1,
                 vector_expression<const vector_base<float>, const vector_base<float>, op_element_binary<OpT> > const & proxy)
@@ -1010,6 +1102,61 @@ void element_op(vector_base<float> & vec1,
   VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
 }
 
+// v1 = OP(v2, alpha), float
+template<typename OpT>
+void element_op(vector_base<float> & vec1,
+                vector_expression<const vector_base<float>, const float, op_element_binary<OpT> > const & proxy)
+{
+  unsigned int op_type = 2; //0: product, 1: division, 2: power
+  if (viennacl::is_division<OpT>::value)
+    op_type = 1;
+  else if (viennacl::is_product<OpT>::value)
+    op_type = 0;
+
+  element_op_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
+                                  static_cast<unsigned int>(viennacl::traits::start(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::stride(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::size(vec1)),
+
+                                  viennacl::cuda_arg(proxy.lhs()),
+                                  static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
+                                  static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs())),
+
+                                  proxy.rhs(),
+
+                                  op_type
+                                 );
+  VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
+}
+
+// v1 = OP(alpha, v3), float
+template<typename OpT>
+void element_op(vector_base<float> & vec1,
+                vector_expression<const float, const vector_base<float>, op_element_binary<OpT> > const & proxy)
+{
+  unsigned int op_type = 2; //0: product, 1: division, 2: power
+  if (viennacl::is_division<OpT>::value)
+    op_type = 1;
+  else if (viennacl::is_product<OpT>::value)
+    op_type = 0;
+
+  element_op_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
+                                  static_cast<unsigned int>(viennacl::traits::start(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::stride(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::size(vec1)),
+
+                                  proxy.lhs(),
+
+                                  viennacl::cuda_arg(proxy.rhs()),
+                                  static_cast<unsigned int>(viennacl::traits::start(proxy.rhs())),
+                                  static_cast<unsigned int>(viennacl::traits::stride(proxy.rhs())),
+
+                                  op_type
+                                 );
+  VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
+}
+
+// v1 = OP(v2, v3), double
 template<typename OpT>
 void element_op(vector_base<double> & vec1,
                 vector_expression<const vector_base<double>, const vector_base<double>, op_element_binary<OpT> > const & proxy)
@@ -1038,453 +1185,86 @@ void element_op(vector_base<double> & vec1,
   VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
 }
 
+// v1 = OP(v2, alpha), double
+template<typename OpT>
+void element_op(vector_base<double> & vec1,
+                vector_expression<const vector_base<double>, const double, op_element_binary<OpT> > const & proxy)
+{
+  unsigned int op_type = 2; //0: product, 1: division, 2: power
+  if (viennacl::is_division<OpT>::value)
+    op_type = 1;
+  else if (viennacl::is_product<OpT>::value)
+    op_type = 0;
+
+  element_op_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
+                                  static_cast<unsigned int>(viennacl::traits::start(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::stride(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::size(vec1)),
+
+                                  viennacl::cuda_arg(proxy.lhs()),
+                                  static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
+                                  static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs())),
+
+                                  proxy.rhs(),
+
+                                  op_type
+                                 );
+  VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
+}
+
+// v1 = OP(alpha, v3), double
+template<typename OpT>
+void element_op(vector_base<double> & vec1,
+                vector_expression<const double, const vector_base<double>, op_element_binary<OpT> > const & proxy)
+{
+  unsigned int op_type = 2; //0: product, 1: division, 2: power
+  if (viennacl::is_division<OpT>::value)
+    op_type = 1;
+  else if (viennacl::is_product<OpT>::value)
+    op_type = 0;
+
+  element_op_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
+                                  static_cast<unsigned int>(viennacl::traits::start(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::stride(vec1)),
+                                  static_cast<unsigned int>(viennacl::traits::size(vec1)),
+
+                                  proxy.lhs(),
+
+                                  viennacl::cuda_arg(proxy.rhs()),
+                                  static_cast<unsigned int>(viennacl::traits::start(proxy.rhs())),
+                                  static_cast<unsigned int>(viennacl::traits::stride(proxy.rhs())),
+
+                                  op_type
+                                 );
+  VIENNACL_CUDA_LAST_ERROR_CHECK("element_op_kernel");
+}
+
 ///////////////////////// Unary Elementwise operations /////////////
 
-// Note: Trying to automate things with macros or template metaprogramming failed (preprocessor with nvcc did not work as expected), so this is terribly hand-rolled code
-// Question (Karl Rupp): Why is CUDA code always such a hassle when trying to use it in a library context?
-
 // acos
-template<typename NumericT>
-__global__ void vec_element_acos_kernel(
+template<typename OpT, typename NumericT>
+__global__ void vec_unary_element_op_kernel(
     NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
     NumericT const * vec2, unsigned int start2, unsigned int inc2)
 {
   for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = acos(vec2[i*inc2+start2]);
+    vec1[i*inc1+start1] = cuda_unary_op<OpT>::apply(vec2[i*inc2+start2]);
 }
 
-template<typename NumericT>
+template<typename NumericT, typename OpT>
 void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_acos> > const & proxy)
+                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<OpT> > const & proxy)
 {
-  typedef NumericT        value_type;
-
-  vec_element_acos_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_acos_kernel");
+  vec_unary_element_op_kernel<OpT, NumericT><<<128, 128>>>(viennacl::cuda_arg(vec1),
+                                                           static_cast<unsigned int>(viennacl::traits::start(vec1)),
+                                                           static_cast<unsigned int>(viennacl::traits::stride(vec1)),
+                                                           static_cast<unsigned int>(viennacl::traits::size(vec1)),
+                                                           viennacl::cuda_arg(proxy.lhs()),
+                                                           static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
+                                                           static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
+                                                          );
+  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_unary_element_op_kernel");
 }
-
-// asin
-template<typename NumericT>
-__global__ void vec_element_asin_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = asin(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_asin> > const & proxy)
-{
-  vec_element_asin_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_asin_kernel");
-}
-
-
-// atan
-template<typename NumericT>
-__global__ void vec_element_atan_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = atan(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_atan> > const & proxy)
-{
-  vec_element_atan_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_atan_kernel");
-}
-
-
-// ceil
-template<typename NumericT>
-__global__ void vec_element_ceil_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = ceil(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_ceil> > const & proxy)
-{
-  vec_element_ceil_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_ceil_kernel");
-}
-
-
-// cos
-template<typename NumericT>
-__global__ void vec_element_cos_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = cos(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_cos> > const & proxy)
-{
-  vec_element_cos_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_cos_kernel");
-}
-
-
-// cosh
-template<typename NumericT>
-__global__ void vec_element_cosh_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = cosh(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_cosh> > const & proxy)
-{
-  vec_element_cosh_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_cosh_kernel");
-}
-
-
-// exp
-template<typename NumericT>
-__global__ void vec_element_exp_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = exp(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_exp> > const & proxy)
-{
-  vec_element_exp_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_exp_kernel");
-}
-
-
-// fabs
-template<typename NumericT>
-__global__ void vec_element_fabs_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = fabs(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_fabs> > const & proxy)
-{
-  vec_element_fabs_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_fabs_kernel");
-}
-
-// abs
-template<typename NumericT>
-__global__ void vec_element_abs_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = abs(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_abs> > const & proxy)
-{
-  vec_element_abs_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                       static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                       static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                       static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                       viennacl::cuda_arg(proxy.lhs()),
-                                       static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                       static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                      );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_abs_kernel");
-}
-
-
-
-// floor
-template<typename NumericT>
-__global__ void vec_element_floor_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = floor(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_floor> > const & proxy)
-{
-  vec_element_floor_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_floor_kernel");
-}
-
-
-// log
-template<typename NumericT>
-__global__ void vec_element_log_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = log(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_log> > const & proxy)
-{
-  vec_element_log_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_log_kernel");
-}
-
-
-// log10
-template<typename NumericT>
-__global__ void vec_element_log10_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = log10(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_log10> > const & proxy)
-{
-  vec_element_log10_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_log10_kernel");
-}
-
-
-// sin
-template<typename NumericT>
-__global__ void vec_element_sin_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = sin(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_sin> > const & proxy)
-{
-  vec_element_sin_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_sin_kernel");
-}
-
-
-// sinh
-template<typename NumericT>
-__global__ void vec_element_sinh_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = sinh(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_sinh> > const & proxy)
-{
-  vec_element_sinh_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_sinh_kernel");
-}
-
-
-// sqrt
-template<typename NumericT>
-__global__ void vec_element_sqrt_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = sqrt(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_sqrt> > const & proxy)
-{
-  vec_element_sqrt_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_sqrt_kernel");
-}
-
-
-// tan
-template<typename NumericT>
-__global__ void vec_element_tan_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = tan(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_tan> > const & proxy)
-{
-  vec_element_tan_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_tan_kernel");
-}
-
-
-// tanh
-template<typename NumericT>
-__global__ void vec_element_tanh_kernel(
-    NumericT       * vec1, unsigned int start1, unsigned int inc1, unsigned int size1,
-    NumericT const * vec2, unsigned int start2, unsigned int inc2)
-{
-  for (unsigned int i = blockDim.x * blockIdx.x + threadIdx.x; i < size1; i += gridDim.x * blockDim.x)
-    vec1[i*inc1+start1] = tanh(vec2[i*inc2+start2]);
-}
-
-template<typename NumericT>
-void element_op(vector_base<NumericT> & vec1,
-                vector_expression<const vector_base<NumericT>, const vector_base<NumericT>, op_element_unary<op_tanh> > const & proxy)
-{
-  vec_element_tanh_kernel<<<128, 128>>>(viennacl::cuda_arg(vec1),
-                                        static_cast<unsigned int>(viennacl::traits::start(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::stride(vec1)),
-                                        static_cast<unsigned int>(viennacl::traits::size(vec1)),
-                                        viennacl::cuda_arg(proxy.lhs()),
-                                        static_cast<unsigned int>(viennacl::traits::start(proxy.lhs())),
-                                        static_cast<unsigned int>(viennacl::traits::stride(proxy.lhs()))
-                                       );
-  VIENNACL_CUDA_LAST_ERROR_CHECK("vec_element_tanh_kernel");
-}
-
 
 
 ///////////////////////// Norms and inner product ///////////////////

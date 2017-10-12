@@ -62,7 +62,6 @@ void generate_vector_binary_element_ops(StringT & source, std::string const & nu
   else
     kernel_name_suffix = "pow";
 
-  // generic kernel for the vector operation v1 = alpha * v2 + beta * v3, where v1, v2, v3 are not necessarily distinct vectors
   source.append("__kernel void element_" + kernel_name_suffix + "(\n");
   source.append("    __global "); source.append(numeric_string); source.append(" * vec1, \n");
   source.append("    unsigned int start1, \n");
@@ -88,6 +87,55 @@ void generate_vector_binary_element_ops(StringT & source, std::string const & nu
     source.append("    vec1[i*inc1+start1] = pow(vec2[i*inc2+start2], vec3[i*inc3+start3]); \n");
 
   source.append("} \n");
+
+  source.append("__kernel void element_" + kernel_name_suffix + "_va(\n");
+  source.append("    __global "); source.append(numeric_string); source.append(" * vec1, \n");
+  source.append("    unsigned int start1, \n");
+  source.append("    unsigned int inc1, \n");
+  source.append("    unsigned int size1, \n");
+
+  source.append("    __global const "); source.append(numeric_string); source.append(" * vec2, \n");
+  source.append("    unsigned int start2, \n");
+  source.append("    unsigned int inc2, \n");
+
+  source.append("    "); source.append(numeric_string); source.append(" alpha, \n");
+
+  source.append("   unsigned int op_type) \n");
+  source.append("{ \n");
+  source.append("  for (unsigned int i = get_global_id(0); i < size1; i += get_global_size(0)) \n");
+  if (op_type == 0)
+    source.append("    vec1[i*inc1+start1] = vec2[i*inc2+start2] * alpha; \n");
+  else if (op_type == 1)
+    source.append("    vec1[i*inc1+start1] = vec2[i*inc2+start2] / alpha; \n");
+  else if (op_type == 2)
+    source.append("    vec1[i*inc1+start1] = pow(vec2[i*inc2+start2], alpha); \n");
+
+  source.append("} \n");
+
+  source.append("__kernel void element_" + kernel_name_suffix + "_av(\n");
+  source.append("    __global "); source.append(numeric_string); source.append(" * vec1, \n");
+  source.append("    unsigned int start1, \n");
+  source.append("    unsigned int inc1, \n");
+  source.append("    unsigned int size1, \n");
+
+  source.append("    "); source.append(numeric_string); source.append(" alpha, \n");
+
+  source.append("    __global const "); source.append(numeric_string); source.append(" * vec3, \n");
+  source.append("   unsigned int start3, \n");
+  source.append("   unsigned int inc3, \n");
+
+  source.append("   unsigned int op_type) \n");
+  source.append("{ \n");
+  source.append("  for (unsigned int i = get_global_id(0); i < size1; i += get_global_size(0)) \n");
+  if (op_type == 0)
+    source.append("    vec1[i*inc1+start1] = alpha * vec3[i*inc3+start3]; \n");
+  else if (op_type == 1)
+    source.append("    vec1[i*inc1+start1] = alpha / vec3[i*inc3+start3]; \n");
+  else if (op_type == 2)
+    source.append("    vec1[i*inc1+start1] = pow(alpha, vec3[i*inc3+start3]); \n");
+
+  source.append("} \n");
+
 }
 
 //////////////////////////// Part 2: Main kernel class ////////////////////////////////////
@@ -119,21 +167,33 @@ struct vector_element
       if (numeric_string == "float" || numeric_string == "double")
       {
         generate_vector_unary_element_ops(source, numeric_string, "acos");
+        generate_vector_unary_element_ops(source, numeric_string, "acosh");
         generate_vector_unary_element_ops(source, numeric_string, "asin");
+        generate_vector_unary_element_ops(source, numeric_string, "asinh");
         generate_vector_unary_element_ops(source, numeric_string, "atan");
+        generate_vector_unary_element_ops(source, numeric_string, "atanh");
         generate_vector_unary_element_ops(source, numeric_string, "ceil");
         generate_vector_unary_element_ops(source, numeric_string, "cos");
         generate_vector_unary_element_ops(source, numeric_string, "cosh");
+        generate_vector_unary_element_ops(source, numeric_string, "erf");
+        generate_vector_unary_element_ops(source, numeric_string, "erfc");
         generate_vector_unary_element_ops(source, numeric_string, "exp");
+        generate_vector_unary_element_ops(source, numeric_string, "exp2");
+        generate_vector_unary_element_ops(source, numeric_string, "exp10");
         generate_vector_unary_element_ops(source, numeric_string, "fabs");
         generate_vector_unary_element_ops(source, numeric_string, "floor");
         generate_vector_unary_element_ops(source, numeric_string, "log");
+        generate_vector_unary_element_ops(source, numeric_string, "log2");
         generate_vector_unary_element_ops(source, numeric_string, "log10");
+        generate_vector_unary_element_ops(source, numeric_string, "round");
+        generate_vector_unary_element_ops(source, numeric_string, "rsqrt");
+        generate_vector_unary_element_ops(source, numeric_string, "sign");
         generate_vector_unary_element_ops(source, numeric_string, "sin");
         generate_vector_unary_element_ops(source, numeric_string, "sinh");
         generate_vector_unary_element_ops(source, numeric_string, "sqrt");
         generate_vector_unary_element_ops(source, numeric_string, "tan");
         generate_vector_unary_element_ops(source, numeric_string, "tanh");
+        generate_vector_unary_element_ops(source, numeric_string, "trunc");
       }
       else
       {

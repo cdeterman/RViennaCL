@@ -478,9 +478,6 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
   max_nnz_row_A.switch_memory_context(viennacl::context(MAIN_MEMORY));
   unsigned int const * max_nnz_row_A_ptr = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(max_nnz_row_A.handle());
 
-  max_nnz_row_B.switch_memory_context(viennacl::context(MAIN_MEMORY));
-  unsigned int const * max_nnz_row_B_ptr = viennacl::linalg::host_based::detail::extract_raw_pointer<unsigned int>(max_nnz_row_B.handle());
-
   unsigned int max_subwarp_size = 0;
   //Rcpp::Rcout << "Scratchpad offsets: " << std::endl;
   for (std::size_t i=0; i<subwarp_sizes.size(); ++i)
@@ -549,7 +546,6 @@ void prod_impl(viennacl::compressed_matrix<NumericT, AlignmentV> const & A,
 
   subwarp_sizes.switch_memory_context(viennacl::traits::context(A));
   max_nnz_row_A.switch_memory_context(viennacl::traits::context(A));
-  max_nnz_row_B.switch_memory_context(viennacl::traits::context(A));
 
   //
   // Stage 2: Determine pattern of C
