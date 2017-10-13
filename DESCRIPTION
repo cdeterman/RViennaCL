@@ -17,4 +17,5 @@ License: GPL-3
 URL: http://github.com/cdeterman/RViennaCL
 BugReports: http://github.com/cdeterman/RViennaCL/issues/new
 Suggests: gpuR
-RoxygenNote: 5.0.1.9000
+RoxygenNote: 6.0.1
+Encoding: UTF-8
