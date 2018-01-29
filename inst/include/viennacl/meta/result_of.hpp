@@ -172,14 +172,14 @@ struct size_type<arma::SpMat<NumericT> > { typedef vcl_size_t  type; };
 #endif
 
 #ifdef VIENNACL_WITH_EIGEN
-template<class T, int a, int b, int c, int d, int e, int f, typename g>
-struct size_type< Eigen::Matrix<T, a, b, c, d, e>, f, g >
+template<class T, int a, int b, int c, int d, int e>
+struct size_type< Eigen::Matrix<T, a, b, c, d, e>>
 {
   typedef vcl_size_t   type;
 };
 
-template<class T, int a, int b, int c, int d, int e>
-struct size_type< Eigen::Map<Eigen::Matrix<T, a, b, c, d, e> > >
+template<class T, int a, int b, int c, int d, int e, int f, typename g>
+struct size_type< Eigen::Map<Eigen::Matrix<T, a, b, c, d, e>, f, g > >
 {
   typedef vcl_size_t   type;
 };
